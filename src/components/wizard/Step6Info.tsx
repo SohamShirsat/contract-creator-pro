@@ -20,20 +20,7 @@ export function Step6Info() {
         />
       </div>
 
-      <div className="cc-card">
-        <h3 className="cc-section-title">Set contract validity</h3>
-        <p style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 12 }}>Date range selection</p>
-        <div style={{ display: "flex", gap: 16, maxWidth: 500 }}>
-          <div style={{ flex: 1 }}>
-            <label className="cc-label">Valid from</label>
-            <input type="date" className="cc-input" value={state.validFrom} onChange={(e) => setState({ ...state, validFrom: e.target.value })} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="cc-label">Valid to</label>
-            <input type="date" className="cc-input" value={state.validTo} onChange={(e) => setState({ ...state, validTo: e.target.value })} />
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 }

@@ -30,11 +30,23 @@ export function Step2Pricing() {
   const removeRoom = (roomId: string) =>
     setState((s) => ({ ...s, rooms: s.rooms.filter((r) => r.id !== roomId) }));
 
-  const addRoom = () =>
+  const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
+  const ROOM_OPTIONS = [
+    { name: "Standard Room", maxAdult: 2, maxChild: 2 },
+    { name: "Deluxe Room", maxAdult: 2, maxChild: 2 },
+    { name: "Executive Room", maxAdult: 2, maxChild: 2 },
+    { name: "Suite Room", maxAdult: 4, maxChild: 4 },
+    { name: "Junior Suite", maxAdult: 3, maxChild: 2 },
+    { name: "Presidential Suite", maxAdult: 6, maxChild: 4 },
+  ];
+
+  const addRoom = (option: typeof ROOM_OPTIONS[0]) => {
     setState((s) => ({
       ...s,
-      rooms: [...s.rooms, { id: uid(), name: "New Room", maxAdult: 2, maxChild: 2 }],
+      rooms: [...s.rooms, { id: uid(), ...option }],
     }));
+    setRoomDropdownOpen(false);
+  };
 
   const openAddSeason = () => {
     setDraftSeason({ id: "", name: "", type: "Peak", dateIntervals: [{ id: uid(), from: "", to: "" }] });
@@ -225,9 +237,44 @@ export function Step2Pricing() {
           />
         )}
 
-        <button className="cc-btn cc-btn-outline" style={{ marginTop: 12 }} onClick={addRoom}>
-          + Add Room Type
-        </button>
+        <div style={{ position: "relative", marginTop: 12 }}>
+          <button
+            className="cc-btn cc-btn-outline"
+            onClick={() => setRoomDropdownOpen(!roomDropdownOpen)}
+          >
+            + Add Room Type
+          </button>
+          {roomDropdownOpen && (
+            <>
+              <div
+                style={{ position: "fixed", inset: 0, zIndex: 99 }}
+                onClick={() => setRoomDropdownOpen(false)}
+              />
+              <div style={{
+                position: "absolute", bottom: "calc(100% + 8px)", left: 0,
+                background: "white", border: "1.5px solid var(--color-border)", borderRadius: 8,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.12)", zIndex: 100, padding: 4,
+                minWidth: 200
+              }}>
+                {ROOM_OPTIONS.filter(opt => !state.rooms.some(r => r.name === opt.name)).map((opt) => (
+                  <button
+                    key={opt.name}
+                    className="cc-btn cc-btn-ghost"
+                    style={{ width: "100%", textAlign: "left", justifyContent: "flex-start", fontSize: 14, padding: "8px 12px" }}
+                    onClick={() => addRoom(opt)}
+                  >
+                    {opt.name}
+                  </button>
+                ))}
+                {ROOM_OPTIONS.filter(opt => !state.rooms.some(r => r.name === opt.name)).length === 0 && (
+                  <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--color-muted-foreground)" }}>
+                    All available room types have been added.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* BAR */}
@@ -346,14 +393,52 @@ function MealRow({
   })();
   return (
     <tr>
-      <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", paddingLeft: 32, fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>{meal}</td>
+      <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", paddingLeft: 16, fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between" }}>
+          {meal}
+          {!isBase ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!cell.enabled}
+              onClick={() => setCell({ enabled: !cell.enabled })}
+              style={{
+                width: 36,
+                height: 20,
+                borderRadius: 20,
+                background: cell.enabled ? "var(--color-primary)" : "var(--color-border)",
+                position: "relative",
+                border: "none",
+                cursor: "pointer",
+                transition: "background 0.2s",
+                flexShrink: 0
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  left: cell.enabled ? 18 : 2,
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  background: "white",
+                  transition: "left 0.2s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                }}
+              />
+            </button>
+          ) : (
+            <div style={{ width: 36 }} /> /* Placeholder for alignment */
+          )}
+        </div>
+      </td>
       <td>
         {isBase ? (
           <input className="cc-input" style={{ width: 110 }} value={cell.base || ""} onChange={(e) => setCell({ base: e.target.value })} />
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" checked={!!cell.enabled} onChange={(e) => setCell({ enabled: e.target.checked })} style={{ accentColor: "var(--color-primary)" }} />
-            <input className="cc-input" style={{ width: 90 }} disabled={!cell.enabled} value={cell.addonPrice || ""} onChange={(e) => setCell({ addonPrice: e.target.value })} />
+            <input className="cc-input" style={{ width: 110 }} disabled={!cell.enabled} value={cell.addonPrice || ""} onChange={(e) => setCell({ addonPrice: e.target.value })} />
             {cell.enabled && <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>{calc}</span>}
           </div>
         )}

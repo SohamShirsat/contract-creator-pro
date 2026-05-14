@@ -51,8 +51,7 @@ function Wizard() {
         {step === 3 && <Step3Addons />}
         {step === 4 && <Step4Policies />}
         {step === 5 && <Step5Tax />}
-        {step === 6 && <Step6Info />}
-        {step === 7 && <Step7Preview />}
+        {step === 6 && <Step7Preview />}
       </main>
 
       {/* Footer */}
@@ -66,7 +65,7 @@ function Wizard() {
         </button>
         <div style={{ display: "flex", gap: 12 }}>
           <button className="cc-btn cc-btn-outline cc-btn-lg">Save as Draft</button>
-          {step < 7 ? (
+          {step < 6 ? (
             <button className="cc-btn cc-btn-primary cc-btn-lg" onClick={() => setStep(step + 1)}>
               Save & Continue
             </button>

@@ -119,10 +119,6 @@ export function Step1Setup() {
         <h3 className="cc-section-title">Basic contract settings</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
-            <label className="cc-label">Contract name</label>
-            <input className="cc-input" value={state.contractName} onChange={(e) => setState({ ...state, contractName: e.target.value })} />
-          </div>
-          <div>
             <label className="cc-label">Hotel / property name</label>
             <HotelMultiSelect
               selected={state.hotelProperties}
@@ -208,7 +204,7 @@ export function Step1Setup() {
 {/* Info messages */}
         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
           <InfoMsg text="This rate will be overridden by room/date specific CWeB and CNB." />
-          <InfoMsg text={`Decimal ages are treated as the next whole number. Example: 5.1 years will be treated as 6 years.`} />
+          <InfoMsg text={`Decimal ages are treated as the next whole number. Example: 5 years 1 Month will be treated as 6 years.`} />
         </div>
         <div style={{ overflowX: "auto" }}>
           <table className="cc-table">
@@ -218,8 +214,8 @@ export function Step1Setup() {
                 <th>Age to</th>
                 <th>Occupancy condition</th>
                 <th>Bedding</th>
-                <th>Pricing type</th>
                 <th>Value</th>
+                <th>Pricing type</th>
                 <th></th>
               </tr>
             </thead>
@@ -259,14 +255,14 @@ export function Step1Setup() {
                     </select>
                   </td>
                   <td>
+                    <input className="cc-input" value={t.value} onChange={(e) => updateTier(t.id, { value: e.target.value })} />
+                  </td>
+                  <td>
                     <select className="cc-input" value={t.pricingType} onChange={(e) => updateTier(t.id, { pricingType: e.target.value as ChildTier["pricingType"] })}>
                       <option>Free</option>
                       <option>% Adult rate</option>
                       <option>Fixed</option>
                     </select>
-                  </td>
-                  <td>
-                    <input className="cc-input" value={t.value} onChange={(e) => updateTier(t.id, { value: e.target.value })} />
                   </td>
                   <td>
                     <button className="cc-icon-btn" onClick={() => removeTier(t.id)} aria-label="delete">✕</button>

@@ -1,6 +1,6 @@
 import { useContract } from "@/lib/contract";
 
-const labels = ["Setup", "Season & Pricing", "Add-ons", "Policies", "Surcharges & Tax", "Add. Info", "Preview"];
+const labels = ["Setup", "Season & Pricing", "Add-ons", "Policies", "Fees, Tax & Info"];
 
 export function Stepper() {
   const { step, setStep } = useContract();

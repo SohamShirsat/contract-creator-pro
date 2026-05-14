@@ -10,6 +10,7 @@ import { Step5Tax } from "@/components/wizard/Step5Tax";
 import { Step6Info } from "@/components/wizard/Step6Info";
 import { Step7Preview } from "@/components/wizard/Step7Preview";
 import { SuccessPopup } from "@/components/wizard/SuccessPopup";
+import { NotesPanel } from "@/components/wizard/NotesPanel";
 
 export const Route = createFileRoute("/")({ component: Index });
 
@@ -78,6 +79,7 @@ function Wizard() {
       </footer>
 
       <SuccessPopup open={success} onClose={() => setSuccess(false)} contractName={state.contractName} />
+      <NotesPanel />
     </div>
   );
 }

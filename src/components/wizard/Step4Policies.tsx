@@ -29,7 +29,12 @@ export function Step4Policies() {
 
   const saveCancel = () => {
     const key = cancelModal.type === "before" ? "cancelBefore" : "cancelAfter";
-    setState((s) => ({ ...s, [key]: [...s[key], { ...draftCancel, id: uid() }] } as never));
+    const ruleToAdd = { ...draftCancel, id: uid() };
+    // Default to Fixed charges for after check-in rules if we're hiding the UI
+    if (cancelModal.type === "after") {
+      ruleToAdd.type = "Fixed charges";
+    }
+    setState((s) => ({ ...s, [key]: [...s[key], ruleToAdd] } as never));
     setCancelModal({ open: false, type: cancelModal.type });
     setDraftCancel({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", penaltyUnit: "%", processingFees: "" });
   };
@@ -83,7 +88,7 @@ export function Step4Policies() {
         <table className="cc-table">
           <thead>
             <tr>
-              <th>Condition</th><th>Type</th><th>Applies when (days range)</th><th>Penalty</th><th>Processing fees</th><th></th>
+              <th>Condition</th><th>Type</th><th>Applies when (days range)</th><th>Penalty</th><th>Processing fees (optional)</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -148,7 +153,7 @@ export function Step4Policies() {
         <table className="cc-table">
           <thead>
             <tr>
-              <th>Condition</th><th>Type</th><th>Charges</th><th>Penalty</th><th>Processing fees</th><th></th>
+              <th>Condition</th><th>Penalty</th><th>Processing fees (optional)</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -162,39 +167,26 @@ export function Step4Policies() {
                   </select>
                 </td>
                 <td>
-                  <select className="cc-input" style={{ width: 140 }} value={r.type} onChange={(e) => updateCancel("cancelAfter", r.id, { type: e.target.value as CancelRule["type"] })}>
-                    <option>Days range</option>
-                    <option>Fixed charges</option>
-                  </select>
-                </td>
-                <td>
-                  {r.type === "Days range" ? (
-                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      <input className="cc-input" style={{ width: 70 }} placeholder="From" value={r.from} onChange={(e) => updateCancel("cancelAfter", r.id, { from: e.target.value })} />
-                      <span>–</span>
-                      <input className="cc-input" style={{ width: 70 }} placeholder="To" value={r.to} onChange={(e) => updateCancel("cancelAfter", r.id, { to: e.target.value })} />
-                      <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>days</span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 0 }}>
+                      <input
+                        className="cc-input"
+                        style={{ width: 80, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                        value={r.penalty}
+                        onChange={(e) => updateCancel("cancelAfter", r.id, { penalty: e.target.value })}
+                      />
+                      <select
+                        className="cc-input"
+                        style={{ width: 58, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+                        value={r.penaltyUnit || "%"}
+                        onChange={(e) => updateCancel("cancelAfter", r.id, { penaltyUnit: e.target.value as "%" | "₹" })}
+                      >
+                        <option>%</option><option>₹</option>
+                      </select>
                     </div>
-                  ) : (
-                    <input className="cc-input" style={{ width: 130 }} placeholder="Fixed amount" value={r.from} onChange={(e) => updateCancel("cancelAfter", r.id, { from: e.target.value })} />
-                  )}
-                </td>
-                <td>
-                  <div style={{ display: "flex", gap: 0 }}>
-                    <input
-                      className="cc-input"
-                      style={{ width: 80, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-                      value={r.penalty}
-                      onChange={(e) => updateCancel("cancelAfter", r.id, { penalty: e.target.value })}
-                    />
-                    <select
-                      className="cc-input"
-                      style={{ width: 58, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
-                      value={r.penaltyUnit || "%"}
-                      onChange={(e) => updateCancel("cancelAfter", r.id, { penaltyUnit: e.target.value as "%" | "₹" })}
-                    >
-                      <option>%</option><option>₹</option>
-                    </select>
+                    {(r.penaltyUnit || "%") === "%" && (
+                      <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>of the booking</span>
+                    )}
                   </div>
                 </td>
                 <td><input className="cc-input" placeholder="Optional" value={r.processingFees || ""} onChange={(e) => updateCancel("cancelAfter", r.id, { processingFees: e.target.value })} /></td>
@@ -506,8 +498,12 @@ export function Step4Policies() {
             <tr>
               <th>Room type</th>
               <th>PMS inventory</th>
-              <th>Rooms allocated</th>
-              <th>Release</th>
+              {!freeSale && (
+                <>
+                  <th>Rooms allocated</th>
+                  <th>Release</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -521,24 +517,26 @@ export function Step4Policies() {
                 <tr key={r.id}>
                   <td>{r.name}</td>
                   <td><input className="cc-input" style={{ width: 100, opacity: 0.5, cursor: "not-allowed" }} value={inv.pms} disabled readOnly /></td>
-                  <td>
-                    <input
-                      className="cc-input"
-                      style={{ width: 100, opacity: freeSale ? 0.4 : 1 }}
-                      disabled={freeSale}
-                      value={inv.allocated}
-                      onChange={(e) => upd({ allocated: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="cc-input"
-                      style={{ width: 100, opacity: freeSale ? 0.4 : 1 }}
-                      disabled={freeSale}
-                      value={inv.release}
-                      onChange={(e) => upd({ release: e.target.value })}
-                    />
-                  </td>
+                  {!freeSale && (
+                    <>
+                      <td>
+                        <input
+                          className="cc-input"
+                          style={{ width: 100 }}
+                          value={inv.allocated}
+                          onChange={(e) => upd({ allocated: e.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="cc-input"
+                          style={{ width: 100 }}
+                          value={inv.release}
+                          onChange={(e) => upd({ release: e.target.value })}
+                        />
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}
@@ -593,49 +591,58 @@ export function Step4Policies() {
               {(cancelModal.type === "before" ? ["Before Check-in", "Partial cancellation"] : ["Early departure", "Partial cancellation"]).map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
-          <div>
-            <label className="cc-label">Type</label>
-            <select className="cc-input" value={draftCancel.type} onChange={(e) => setDraftCancel({ ...draftCancel, type: e.target.value as CancelRule["type"] })}>
-              <option>Days range</option>
-              <option>Fixed charges</option>
-            </select>
-          </div>
-
-          {draftCancel.type === "Days range" ? (
-            <>
-              <div>
-                <label className="cc-label">From (days)</label>
-                <input className="cc-input" placeholder="e.g. 30" value={draftCancel.from} onChange={(e) => setDraftCancel({ ...draftCancel, from: e.target.value })} />
-              </div>
-              <div>
-                <label className="cc-label">To (days)</label>
-                <input className="cc-input" placeholder="e.g. 60" value={draftCancel.to} onChange={(e) => setDraftCancel({ ...draftCancel, to: e.target.value })} />
-              </div>
-            </>
-          ) : (
+          {cancelModal.type === "before" && (
             <div>
-              <label className="cc-label">Fixed charges amount</label>
-              <input className="cc-input" placeholder="e.g. 500" value={draftCancel.from} onChange={(e) => setDraftCancel({ ...draftCancel, from: e.target.value })} />
+              <label className="cc-label">Type</label>
+              <select className="cc-input" value={draftCancel.type} onChange={(e) => setDraftCancel({ ...draftCancel, type: e.target.value as CancelRule["type"] })}>
+                <option>Days range</option>
+                <option>Fixed charges</option>
+              </select>
             </div>
           )}
 
-          <div>
+          {cancelModal.type === "before" && (
+            draftCancel.type === "Days range" ? (
+              <>
+                <div>
+                  <label className="cc-label">From (days)</label>
+                  <input className="cc-input" placeholder="e.g. 30" value={draftCancel.from} onChange={(e) => setDraftCancel({ ...draftCancel, from: e.target.value })} />
+                </div>
+                <div>
+                  <label className="cc-label">To (days)</label>
+                  <input className="cc-input" placeholder="e.g. 60" value={draftCancel.to} onChange={(e) => setDraftCancel({ ...draftCancel, to: e.target.value })} />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="cc-label">Fixed charges amount</label>
+                <input className="cc-input" placeholder="e.g. 500" value={draftCancel.from} onChange={(e) => setDraftCancel({ ...draftCancel, from: e.target.value })} />
+              </div>
+            )
+          )}
+
+          <div style={{ gridColumn: cancelModal.type === "after" ? "span 1" : "" }}>
             <label className="cc-label">Penalty</label>
-            <div style={{ display: "flex", gap: 0 }}>
-              <input
-                className="cc-input"
-                style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-                value={draftCancel.penalty}
-                onChange={(e) => setDraftCancel({ ...draftCancel, penalty: e.target.value })}
-              />
-              <select
-                className="cc-input"
-                style={{ width: 64, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
-                value={draftCancel.penaltyUnit || "%"}
-                onChange={(e) => setDraftCancel({ ...draftCancel, penaltyUnit: e.target.value as "%" | "₹" })}
-              >
-                <option>%</option><option>₹</option>
-              </select>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 0 }}>
+                <input
+                  className="cc-input"
+                  style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, width: 80 }}
+                  value={draftCancel.penalty}
+                  onChange={(e) => setDraftCancel({ ...draftCancel, penalty: e.target.value })}
+                />
+                <select
+                  className="cc-input"
+                  style={{ width: 64, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+                  value={draftCancel.penaltyUnit || "%"}
+                  onChange={(e) => setDraftCancel({ ...draftCancel, penaltyUnit: e.target.value as "%" | "₹" })}
+                >
+                  <option>%</option><option>₹</option>
+                </select>
+              </div>
+              {(draftCancel.penaltyUnit || "%") === "%" && (
+                <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>of the booking</span>
+              )}
             </div>
           </div>
           <div>

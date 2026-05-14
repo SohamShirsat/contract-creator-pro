@@ -105,7 +105,6 @@ export function Step7Preview() {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <Section title="Setup" step={1} onEdit={setStep}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <KV k="Contract name" v={state.contractName} />
           <KV k="Hotel properties" v={state.hotelProperties.join(", ") || "—"} />
           <KV k="Currency" v={state.currency} />
           <KV k="Pricing basis" v={state.pricingBasis === "PerRoom" ? "Per Room" : "Per Person Sharing"} />
@@ -361,8 +360,8 @@ export function Step7Preview() {
         </div>
       </Section>
 
-      <Section title="Surcharges, Fees & Tax" step={5} onEdit={setStep}>
-        <table className="cc-table cc-table-compact">
+      <Section title="Surcharges, Fees, Tax & Info" step={5} onEdit={setStep}>
+        <table className="cc-table cc-table-compact" style={{ marginBottom: 16 }}>
           <thead><tr><th>Name</th><th>Type</th><th>Applies on</th><th>Rule</th><th>Min</th><th>Max</th><th>Value</th></tr></thead>
           <tbody>
             {state.taxes.map((t) => (
@@ -374,11 +373,15 @@ export function Step7Preview() {
             ))}
           </tbody>
         </table>
+        {state.additionalInfo && (
+          <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 16 }}>
+            <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Additional information</div>
+            <p style={{ fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", margin: 0 }}>{state.additionalInfo}</p>
+          </div>
+        )}
       </Section>
 
-      <Section title="Additional information" step={6} onEdit={setStep}>
-        <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{state.additionalInfo}</p>
-      </Section>
+
 
       <Section title="Hotel details">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
@@ -414,11 +417,7 @@ export function Step7Preview() {
         ))}
       </Section>
 
-      <Section title="Contract validity" step={6} onEdit={setStep}>
-        <div style={{ fontSize: 14 }}>
-          {state.validFrom} → {state.validTo}
-        </div>
-      </Section>
+
     </div>
   );
 }

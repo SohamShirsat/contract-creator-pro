@@ -1,4 +1,5 @@
 import { useContract, type Addon } from "@/lib/contract";
+import { MultiSelectDropdown } from "@/components/ui/MultiSelectDropdown";
 
 export function Step3Addons() {
   const { state, setState, uid } = useContract();
@@ -112,10 +113,11 @@ export function Step3Addons() {
               {/* Applicable on — shown for all add-ons */}
               <div style={{ minWidth: 200 }}>
                 <label className="cc-label">Applicable on</label>
-                <select className="cc-input" value={a.applicableOn || "All rooms"} onChange={(e) => update(a.id, { applicableOn: e.target.value })}>
-                  <option>All rooms</option>
-                  {state.rooms.map((r) => <option key={r.id}>{r.name}</option>)}
-                </select>
+                <MultiSelectDropdown 
+                  options={["All rooms", ...state.rooms.map(r => r.name)]} 
+                  value={a.applicableOn || "All rooms"} 
+                  onChange={(val) => update(a.id, { applicableOn: val })} 
+                />
               </div>
               <label className="cc-radio-row">
                 <input type="checkbox" checked={a.mandatory} onChange={(e) => update(a.id, { mandatory: e.target.checked })} />

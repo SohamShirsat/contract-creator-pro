@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useContract, type CancelRule, type MinLOS, type Holding, type Blackout } from "@/lib/contract";
+import { MultiSelectDropdown } from "@/components/ui/MultiSelectDropdown";
 import { Modal } from "./Modal";
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -18,7 +19,7 @@ export function Step4Policies() {
   const { state, setState, uid } = useContract();
   const [cancelModal, setCancelModal] = useState<{ open: boolean; type: "before" | "after" }>({ open: false, type: "before" });
   const [minlosModal, setMinlosModal] = useState(false);
-  const [draftCancel, setDraftCancel] = useState<CancelRule>({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", processingFees: "" });
+  const [draftCancel, setDraftCancel] = useState<CancelRule>({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", penaltyUnit: "%", processingFees: "" });
   const [draftMinlos, setDraftMinlos] = useState<MinLOS>({ id: "", restrictionType: "Minimum stay", appliesToFrom: "", appliesToTo: "", minNights: "", roomType: "All rooms" });
 
   const updateCancel = (key: "cancelBefore" | "cancelAfter", id: string, patch: Partial<CancelRule>) =>
@@ -30,7 +31,7 @@ export function Step4Policies() {
     const key = cancelModal.type === "before" ? "cancelBefore" : "cancelAfter";
     setState((s) => ({ ...s, [key]: [...s[key], { ...draftCancel, id: uid() }] } as never));
     setCancelModal({ open: false, type: cancelModal.type });
-    setDraftCancel({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", processingFees: "" });
+    setDraftCancel({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", penaltyUnit: "%", processingFees: "" });
   };
 
   const updateBlackout = (key: "blackouts" | "stopSale", id: string, patch: Partial<Blackout>) =>
@@ -113,7 +114,24 @@ export function Step4Policies() {
                     <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>—</span>
                   )}
                 </td>
-                <td><input className="cc-input" value={r.penalty} onChange={(e) => updateCancel("cancelBefore", r.id, { penalty: e.target.value })} /></td>
+                <td>
+                  <div style={{ display: "flex", gap: 0 }}>
+                    <input
+                      className="cc-input"
+                      style={{ width: 80, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                      value={r.penalty}
+                      onChange={(e) => updateCancel("cancelBefore", r.id, { penalty: e.target.value })}
+                    />
+                    <select
+                      className="cc-input"
+                      style={{ width: 58, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+                      value={r.penaltyUnit || "%"}
+                      onChange={(e) => updateCancel("cancelBefore", r.id, { penaltyUnit: e.target.value as "%" | "₹" })}
+                    >
+                      <option>%</option><option>₹</option>
+                    </select>
+                  </div>
+                </td>
                 <td><input className="cc-input" placeholder="Optional" value={r.processingFees || ""} onChange={(e) => updateCancel("cancelBefore", r.id, { processingFees: e.target.value })} /></td>
                 <td><button className="cc-icon-btn" onClick={() => removeCancel("cancelBefore", r.id)}>✕</button></td>
               </tr>
@@ -161,7 +179,24 @@ export function Step4Policies() {
                     <input className="cc-input" style={{ width: 130 }} placeholder="Fixed amount" value={r.from} onChange={(e) => updateCancel("cancelAfter", r.id, { from: e.target.value })} />
                   )}
                 </td>
-                <td><input className="cc-input" value={r.penalty} onChange={(e) => updateCancel("cancelAfter", r.id, { penalty: e.target.value })} /></td>
+                <td>
+                  <div style={{ display: "flex", gap: 0 }}>
+                    <input
+                      className="cc-input"
+                      style={{ width: 80, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                      value={r.penalty}
+                      onChange={(e) => updateCancel("cancelAfter", r.id, { penalty: e.target.value })}
+                    />
+                    <select
+                      className="cc-input"
+                      style={{ width: 58, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+                      value={r.penaltyUnit || "%"}
+                      onChange={(e) => updateCancel("cancelAfter", r.id, { penaltyUnit: e.target.value as "%" | "₹" })}
+                    >
+                      <option>%</option><option>₹</option>
+                    </select>
+                  </div>
+                </td>
                 <td><input className="cc-input" placeholder="Optional" value={r.processingFees || ""} onChange={(e) => updateCancel("cancelAfter", r.id, { processingFees: e.target.value })} /></td>
                 <td><button className="cc-icon-btn" onClick={() => removeCancel("cancelAfter", r.id)}>✕</button></td>
               </tr>
@@ -182,19 +217,20 @@ export function Step4Policies() {
         </div>
         {state.modificationCharges === "Applicable" && (
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-            {[1, 2].map((i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <input className="cc-input" placeholder="Charge type" />
-                <input className="cc-input" placeholder="Applies when" />
-                <input className="cc-input" placeholder="Value" style={{ width: 100 }} />
+            {(state.modificationRules || []).map((mr) => (
+              <div key={mr.id} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <input className="cc-input" placeholder="Charge type" value={mr.chargeType} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, chargeType: e.target.value } : x) }))} />
+                <input className="cc-input" placeholder="Applies when" value={mr.appliesWhen} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, appliesWhen: e.target.value } : x) }))} />
+                <input className="cc-input" placeholder="Value" style={{ width: 100 }} value={mr.value} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, value: e.target.value } : x) }))} />
                 <span>+</span>
-                <input className="cc-input" placeholder="Additional" style={{ width: 100 }} />
-                <select className="cc-input" style={{ width: 90 }}>
+                <input className="cc-input" placeholder="Additional" style={{ width: 100 }} value={mr.additional} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, additional: e.target.value } : x) }))} />
+                <select className="cc-input" style={{ width: 90 }} value={mr.unit} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, unit: e.target.value as "%" | "₹" } : x) }))}>
                   <option>%</option><option>₹</option>
                 </select>
+                <button className="cc-icon-btn" onClick={() => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).filter((x) => x.id !== mr.id) }))}>✕</button>
               </div>
             ))}
-            <button className="cc-btn cc-btn-outline" style={{ alignSelf: "flex-start" }}>+ Add</button>
+            <button className="cc-btn cc-btn-outline" style={{ alignSelf: "flex-start" }} onClick={() => setState((s) => ({ ...s, modificationRules: [...(s.modificationRules || []), { id: uid(), chargeType: "", appliesWhen: "", value: "", additional: "", unit: "%" }] }))}>+ Add</button>
           </div>
         )}
       </Card>
@@ -270,17 +306,15 @@ export function Step4Policies() {
         <p style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 12 }}>
           Static rates will not be valid — use dynamic pricing from PMS or call hotel directly.
         </p>
-        <label className="cc-radio-row" style={{ marginBottom: 12 }}>
-          <input type="checkbox" checked={state.blackoutAll} onChange={(e) => setState({ ...state, blackoutAll: e.target.checked })} />
-          Apply blackout to all room types
-        </label>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {state.blackouts.map((b) => (
             <div key={b.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <select className="cc-input" style={{ width: 200 }} value={b.roomType} onChange={(e) => updateBlackout("blackouts", b.id, { roomType: e.target.value })}>
-                <option>All rooms</option>
-                {state.rooms.map((r) => <option key={r.id}>{r.name}</option>)}
-              </select>
+              <MultiSelectDropdown
+                style={{ width: 200 }}
+                options={["All rooms", ...state.rooms.map((r) => r.name)]}
+                value={b.roomType || "All rooms"}
+                onChange={(val) => updateBlackout("blackouts", b.id, { roomType: val })}
+              />
               <input type="date" className="cc-input" value={b.from} onChange={(e) => updateBlackout("blackouts", b.id, { from: e.target.value })} />
               <input type="date" className="cc-input" value={b.to} onChange={(e) => updateBlackout("blackouts", b.id, { to: e.target.value })} />
               <input className="cc-input" placeholder="Reason" value={b.reason || ""} onChange={(e) => updateBlackout("blackouts", b.id, { reason: e.target.value })} />
@@ -299,10 +333,12 @@ export function Step4Policies() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {state.stopSale.map((b) => (
             <div key={b.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <select className="cc-input" style={{ width: 200 }} value={b.roomType} onChange={(e) => updateBlackout("stopSale", b.id, { roomType: e.target.value })}>
-                <option>All rooms</option>
-                {state.rooms.map((r) => <option key={r.id}>{r.name}</option>)}
-              </select>
+              <MultiSelectDropdown
+                style={{ width: 200 }}
+                options={["All rooms", ...state.rooms.map((r) => r.name)]}
+                value={b.roomType || "All rooms"}
+                onChange={(val) => updateBlackout("stopSale", b.id, { roomType: val })}
+              />
               <input type="date" className="cc-input" value={b.from} onChange={(e) => updateBlackout("stopSale", b.id, { from: e.target.value })} />
               <input type="date" className="cc-input" value={b.to} onChange={(e) => updateBlackout("stopSale", b.id, { to: e.target.value })} />
               <input className="cc-input" placeholder="Reason" value={b.reason || ""} onChange={(e) => updateBlackout("stopSale", b.id, { reason: e.target.value })} />
@@ -350,7 +386,7 @@ export function Step4Policies() {
           <>
             {state.focTiers.map((t) => (
               <div key={t.id} style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13 }}>Sell</span>
+                <span style={{ fontSize: 13 }}>Book</span>
                 <input className="cc-input" style={{ width: 80 }} value={t.from} onChange={(e) => setState((s) => ({ ...s, focTiers: s.focTiers.map((x) => x.id === t.id ? { ...x, from: e.target.value } : x) }))} />
                 <span>to</span>
                 <input className="cc-input" style={{ width: 80 }} value={t.to} onChange={(e) => setState((s) => ({ ...s, focTiers: s.focTiers.map((x) => x.id === t.id ? { ...x, to: e.target.value } : x) }))} />
@@ -386,13 +422,15 @@ export function Step4Policies() {
             {state.earlyBirdRules.map((r) => (
               <div key={r.id} style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13 }}>Book</span>
-                <input className="cc-input" style={{ width: 80 }} value={r.days} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, days: e.target.value } : x) }))} />
-                <span>days before, get</span>
-                <input className="cc-input" style={{ width: 80 }} value={r.discount} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, discount: e.target.value } : x) }))} />
-                <select className="cc-input" style={{ width: 80 }} value={r.unit} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, unit: e.target.value as "%" | "₹" } : x) }))}>
+                <input className="cc-input" style={{ width: 70 }} placeholder="From" value={r.days} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, days: e.target.value } : x) }))} />
+                <span style={{ fontSize: 13 }}>days to</span>
+                <input className="cc-input" style={{ width: 70 }} placeholder="To" value={r.daysTo || ""} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, daysTo: e.target.value } : x) }))} />
+                <span style={{ fontSize: 13 }}>days before, get</span>
+                <input className="cc-input" style={{ width: 70 }} value={r.discount} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, discount: e.target.value } : x) }))} />
+                <select className="cc-input" style={{ width: 70 }} value={r.unit} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, unit: e.target.value as "%" | "₹" } : x) }))}>
                   <option>%</option><option>₹</option>
                 </select>
-                <span>off on</span>
+                <span style={{ fontSize: 13 }}>off on</span>
                 <select className="cc-input" style={{ width: 180 }} value={r.roomType} onChange={(e) => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.map((x) => x.id === r.id ? { ...x, roomType: e.target.value } : x) }))}>
                   <option>All rooms</option>
                   {state.rooms.map((rm) => <option key={rm.id}>{rm.name}</option>)}
@@ -400,7 +438,7 @@ export function Step4Policies() {
                 <button className="cc-icon-btn" onClick={() => setState((s) => ({ ...s, earlyBirdRules: s.earlyBirdRules.filter((x) => x.id !== r.id) }))}>✕</button>
               </div>
             ))}
-            <button className="cc-btn cc-btn-outline" onClick={() => setState((s) => ({ ...s, earlyBirdRules: [...s.earlyBirdRules, { id: uid(), days: "", discount: "", unit: "%", roomType: "All rooms" }] }))}>+ Add</button>
+            <button className="cc-btn cc-btn-outline" onClick={() => setState((s) => ({ ...s, earlyBirdRules: [...s.earlyBirdRules, { id: uid(), days: "", daysTo: "", discount: "", unit: "%", roomType: "All rooms" }] }))}>+ Add</button>
           </>
         )}
       </Card>
@@ -482,7 +520,7 @@ export function Step4Policies() {
               return (
                 <tr key={r.id}>
                   <td>{r.name}</td>
-                  <td><input className="cc-input" style={{ width: 100 }} value={inv.pms} onChange={(e) => upd({ pms: e.target.value })} /></td>
+                  <td><input className="cc-input" style={{ width: 100, opacity: 0.5, cursor: "not-allowed" }} value={inv.pms} disabled readOnly /></td>
                   <td>
                     <input
                       className="cc-input"
@@ -582,8 +620,23 @@ export function Step4Policies() {
           )}
 
           <div>
-            <label className="cc-label">Penalty (%)</label>
-            <input className="cc-input" value={draftCancel.penalty} onChange={(e) => setDraftCancel({ ...draftCancel, penalty: e.target.value })} />
+            <label className="cc-label">Penalty</label>
+            <div style={{ display: "flex", gap: 0 }}>
+              <input
+                className="cc-input"
+                style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                value={draftCancel.penalty}
+                onChange={(e) => setDraftCancel({ ...draftCancel, penalty: e.target.value })}
+              />
+              <select
+                className="cc-input"
+                style={{ width: 64, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+                value={draftCancel.penaltyUnit || "%"}
+                onChange={(e) => setDraftCancel({ ...draftCancel, penaltyUnit: e.target.value as "%" | "₹" })}
+              >
+                <option>%</option><option>₹</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="cc-label">Processing fees (optional)</label>

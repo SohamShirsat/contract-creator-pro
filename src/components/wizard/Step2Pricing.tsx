@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useContract, type MealPlan, type Season, type Room, type PriceCell, type SeasonInterval } from "@/lib/contract";
 import { Modal } from "./Modal";
 
-const SEASON_TYPES: Season["type"][] = ["Peak", "Shoulder", "Low", "Off"];
 
 export function Step2Pricing() {
   const { state, setState, uid } = useContract();
@@ -289,25 +288,9 @@ export function Step2Pricing() {
         onClose={() => setSeasonModal({ open: false })}
         title={seasonModal.editing ? "Update season" : "Add season"}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div>
-            <label className="cc-label">Season name</label>
-            <input className="cc-input" value={draftSeason.name} onChange={(e) => setDraftSeason({ ...draftSeason, name: e.target.value })} />
-          </div>
-          <div>
-            <label className="cc-label">Type</label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 8 }}>
-              {SEASON_TYPES.map((t) => (
-                <span
-                  key={t}
-                  className={`cc-chip ${draftSeason.type === t ? "cc-chip-active" : ""}`}
-                  onClick={() => setDraftSeason({ ...draftSeason, type: t })}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
+        <div>
+          <label className="cc-label">Season name</label>
+          <input className="cc-input" value={draftSeason.name} onChange={(e) => setDraftSeason({ ...draftSeason, name: e.target.value })} />
         </div>
 
         <div style={{ marginTop: 16 }}>
@@ -363,7 +346,7 @@ function MealRow({
   })();
   return (
     <tr>
-      <td style={{ paddingLeft: 32, fontSize: 13, fontWeight: 500 }}>{meal}</td>
+      <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", paddingLeft: 32, fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>{meal}</td>
       <td>
         {isBase ? (
           <input className="cc-input" style={{ width: 110 }} value={cell.base || ""} onChange={(e) => setCell({ base: e.target.value })} />
@@ -429,12 +412,22 @@ function PerRoomTable({
     { key: "p4", label: "4P" },
   ];
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setContainerWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table className="cc-table">
+    <div ref={scrollRef} style={{ overflowX: "auto" }}>
+      <table className="cc-table" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th>Room type & Meal</th>
+            <th style={{ position: "sticky", left: 0, zIndex: 2, background: "var(--color-muted)", whiteSpace: "nowrap" }}>Room type &amp; Meal</th>
             <th>Base</th>
             <th>AWEB</th>
             {childCols.map((c) => <th key={c.key}>{c.label}</th>)}
@@ -442,10 +435,9 @@ function PerRoomTable({
           </tr>
         </thead>
         <tbody>
-          {rooms.map((r) => {
-            // disable cols where pax >= maxAdult (base = maxAdult pax; above maxAdult = can't fit)
+          {rooms.map((r) => {  position: "sticky"; left: 0; 
             const occCols = allOccCols.map((c) => {
-              const paxNum = parseInt(c.key.slice(1)); // p1→1, p2→2, p3→3, p4→4
+              const paxNum = parseInt(c.key.slice(1));
               return { ...c, disabled: paxNum >= r.maxAdult };
             });
             return (
@@ -454,6 +446,7 @@ function PerRoomTable({
                 room={r}
                 colSpan={3 + childCols.length + allOccCols.length}
                 onRemove={() => removeRoom(r.id)}
+                containerWidth={containerWidth}
               >
                 {mealPlans.map((m) => (
                   <MealRow
@@ -494,12 +487,22 @@ function PerPersonTable({
     { key: "cweb1" as const, label: "CWEB" },
     { key: "cnb1" as const, label: "CNB" },
   ];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setContainerWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table className="cc-table">
+    <div ref={scrollRef} style={{ overflowX: "auto" }}>
+      <table className="cc-table" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th>Room type & Meal</th>
+            <th style={{ position: "sticky", left: 0, zIndex: 2, background: "var(--color-muted)", whiteSpace: "nowrap" }}>Room type &amp; Meal</th>
             <th>Base</th>
             {occCols.map((c) => <th key={c.key}>{c.label}</th>)}
             {childCols.map((c) => <th key={c.key}>{c.label}</th>)}
@@ -512,6 +515,7 @@ function PerPersonTable({
               room={r}
               colSpan={2 + occCols.length + childCols.length}
               onRemove={() => removeRoom(r.id)}
+              containerWidth={containerWidth}
             >
               {mealPlans.map((m) => (
                 <MealRow
@@ -533,12 +537,28 @@ function PerPersonTable({
   );
 }
 
-function FragmentRoom({ room, colSpan, onRemove, children }: { room: Room; colSpan: number; onRemove: () => void; children: React.ReactNode }) {
+function FragmentRoom({ room, colSpan, onRemove, children, containerWidth }: { room: Room; colSpan: number; onRemove: () => void; children: React.ReactNode; containerWidth: number }) {
   return (
     <>
       <tr style={{ background: "var(--color-muted)" }}>
-        <td colSpan={colSpan} style={{ height: 50 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <td
+          colSpan={colSpan}
+          style={{ height: 50, padding: 0 }}
+        >
+          <div style={{
+            position: "sticky",
+            left: 0,
+            zIndex: 10,
+            background: "var(--color-muted)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            width: containerWidth > 0 ? containerWidth : "100%",
+            padding: "0 12px",
+            height: 50,
+            boxSizing: "border-box",
+          }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <strong>{room.name}</strong>
               <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>
@@ -548,7 +568,7 @@ function FragmentRoom({ room, colSpan, onRemove, children }: { room: Room; colSp
                 {room.maxAdult} pax base
               </span>
             </div>
-            <button onClick={onRemove} style={{ background: "none", border: 0, color: "var(--color-destructive)", cursor: "pointer", fontSize: 13 }}>
+            <button onClick={onRemove} style={{ background: "none", border: 0, color: "var(--color-destructive)", cursor: "pointer", fontSize: 13, flexShrink: 0 }}>
               Remove
             </button>
           </div>

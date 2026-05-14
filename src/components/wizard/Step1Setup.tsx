@@ -205,7 +205,11 @@ export function Step1Setup() {
             Below {state.childRangeFrom}y child will be considered as complimentary.
           </span>
         </div>
-
+{/* Info messages */}
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+          <InfoMsg text="This rate will be overridden by room/date specific CWeB and CNB." />
+          <InfoMsg text={`Decimal ages are treated as the next whole number. Example: 5.1 years will be treated as 6 years.`} />
+        </div>
         <div style={{ overflowX: "auto" }}>
           <table className="cc-table">
             <thead>
@@ -276,11 +280,10 @@ export function Step1Setup() {
           + Add row
         </button>
 
-        {/* Info messages */}
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+       {/* <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
           <InfoMsg text="This rate will be overridden by room/date specific CWeB and CNB." />
           <InfoMsg text={`Decimal ages are treated as the next whole number. Example: 5.1 years will be treated as 6 years.`} />
-        </div>
+        </div>*/}
       </div>
 
       {/* Rates will be */}

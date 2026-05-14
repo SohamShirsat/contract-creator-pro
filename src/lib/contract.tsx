@@ -72,6 +72,7 @@ export interface CancelRule {
   from: string;
   to: string;
   penalty: string;
+  penaltyUnit: "%" | "₹";
   processingFees?: string;
 }
 
@@ -126,6 +127,15 @@ export interface Installment {
   days: string;
 }
 
+export interface ModificationRule {
+  id: string;
+  chargeType: string;
+  appliesWhen: string;
+  value: string;
+  additional: string;
+  unit: "%" | "₹";
+}
+
 export interface ContractState {
   // step1
   contractName: string;
@@ -156,6 +166,7 @@ export interface ContractState {
   cancelBefore: CancelRule[];
   cancelAfter: CancelRule[];
   modificationCharges: "Applicable" | "Not applicable";
+  modificationRules: ModificationRule[];
   paymentPolicy: "Pay full amount in advance" | "Pay at month end" | "Pay full amount at check-in" | "Pay full amount at check-out" | "Collect in installments";
   installments: Installment[];
   paymentDetails: boolean;
@@ -167,7 +178,7 @@ export interface ContractState {
   focPolicy: "Applicable" | "Not applicable";
   focTiers: { id: string; from: string; to: string; roomType: string; mealPlan: string }[];
   earlyBird: "Applicable" | "Not applicable";
-  earlyBirdRules: { id: string; days: string; discount: string; unit: "%" | "₹"; roomType: string }[];
+  earlyBirdRules: { id: string; days: string; daysTo: string; discount: string; unit: "%" | "₹"; roomType: string }[];
   checkInRestrictions: "Applicable" | "Not applicable";
   checkInRules: { id: string; dateFrom: string; dateTo: string; roomType: string; reason: string }[];
   inventoryMode: "Allotment" | "Free Sale";
@@ -228,14 +239,17 @@ export const initial: ContractState = {
   ],
   noShowPenalty: "100",
   cancelBefore: [
-    { id: uid(), condition: "Before Check-in", type: "Days range", from: "30", to: "999", penalty: "0", processingFees: "" },
-    { id: uid(), condition: "Partial cancellation", type: "Days range", from: "15", to: "30", penalty: "25", processingFees: "5" },
+    { id: uid(), condition: "Before Check-in", type: "Days range", from: "30", to: "999", penalty: "0", penaltyUnit: "%", processingFees: "" },
+    { id: uid(), condition: "Partial cancellation", type: "Days range", from: "15", to: "30", penalty: "25", penaltyUnit: "%", processingFees: "5" },
   ],
   cancelAfter: [
-    { id: uid(), condition: "Early departure", type: "Fixed charges", from: "", to: "", penalty: "50", processingFees: "10" },
-    { id: uid(), condition: "Partial cancellation", type: "Fixed charges", from: "", to: "", penalty: "100", processingFees: "5" },
+    { id: uid(), condition: "Early departure", type: "Fixed charges", from: "", to: "", penalty: "50", penaltyUnit: "%", processingFees: "10" },
+    { id: uid(), condition: "Partial cancellation", type: "Fixed charges", from: "", to: "", penalty: "100", penaltyUnit: "%", processingFees: "5" },
   ],
   modificationCharges: "Not applicable",
+  modificationRules: [
+    { id: uid(), chargeType: "Date change", appliesWhen: "Within 15 days", value: "1000", additional: "0", unit: "₹" },
+  ],
   paymentPolicy: "Pay at month end",
   installments: [
     { id: uid(), amount: "50", when: "Before check-in", days: "30" },
@@ -255,7 +269,7 @@ export const initial: ContractState = {
   focPolicy: "Not applicable",
   focTiers: [{ id: uid(), from: "10", to: "15", roomType: "Standard Room", mealPlan: "EP" }],
   earlyBird: "Not applicable",
-  earlyBirdRules: [{ id: uid(), days: "60", discount: "10", unit: "%", roomType: "All rooms" }],
+  earlyBirdRules: [{ id: uid(), days: "60", daysTo: "50", discount: "10", unit: "%", roomType: "All rooms" }],
   checkInRestrictions: "Not applicable",
   checkInRules: [{ id: uid(), dateFrom: "", dateTo: "", roomType: "All rooms", reason: "" }],
   inventoryMode: "Allotment",

@@ -1,6 +1,47 @@
 import { useState, type ReactNode } from "react";
 import { useContract } from "@/lib/contract";
 
+function PriceTooltip({ total, tip }: { total: string; tip: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", cursor: "default" }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {total}
+      {show && (
+        <span style={{
+          position: "absolute",
+          bottom: "calc(100% + 6px)",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#1e1e2e",
+          color: "#fff",
+          fontSize: 11,
+          padding: "4px 8px",
+          borderRadius: 6,
+          whiteSpace: "nowrap",
+          zIndex: 50,
+          pointerEvents: "none",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+        }}>
+          {tip}
+          <span style={{
+            position: "absolute",
+            top: "100%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            borderWidth: 4,
+            borderStyle: "solid",
+            borderColor: "#1e1e2e transparent transparent transparent",
+          }} />
+        </span>
+      )}
+    </span>
+  );
+}
+
 function EditIcon({ step, onEdit }: { step: number; onEdit: (step: number) => void }) {
   return (
     <button
@@ -128,11 +169,111 @@ export function Step7Preview() {
       <Section title="Policies" step={4} onEdit={setStep}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
           <KV k="No show penalty" v={`${state.noShowPenalty}% of booking value`} />
+          
           <KV k="Payment policy" v={state.paymentPolicy} />
+          {state.paymentPolicy === "Collect in installments" && state.installments.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Installments</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Amount</th><th>When</th><th>Days</th></tr></thead>
+                <tbody>
+                  {state.installments.map((i) => (
+                    <tr key={i.id}>
+                      <td>{i.amount}%</td>
+                      <td>{i.when}</td>
+                      <td>{i.days} days</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {state.paymentDetails && state.paymentDetailsContent && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Payment details</div>
+              <div style={{ padding: 12, background: "var(--color-muted)", borderRadius: 6, whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 12 }}>
+                {state.paymentDetailsContent}
+              </div>
+            </div>
+          )}
+
           <KV k="Modification charges" v={state.modificationCharges} />
+          {state.modificationCharges === "Applicable" && (state.modificationRules || []).length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Modification rules</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Charge type</th><th>Applies when</th><th>Value</th><th>Additional</th><th>Unit</th></tr></thead>
+                <tbody>
+                  {(state.modificationRules || []).map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.chargeType || "—"}</td>
+                      <td>{r.appliesWhen || "—"}</td>
+                      <td>{r.value || "—"}</td>
+                      <td>{r.additional ? `+${r.additional}` : "—"}</td>
+                      <td>{r.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <KV k="FOC Policy" v={state.focPolicy} />
+          {state.focPolicy === "Applicable" && state.focTiers.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>FOC Tiers</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Condition</th><th>Free room</th><th>Meal plan</th></tr></thead>
+                <tbody>
+                  {state.focTiers.map((t) => (
+                    <tr key={t.id}>
+                      <td>Book {t.from} to {t.to} paid rooms</td>
+                      <td>1 free in {t.roomType}</td>
+                      <td>{t.mealPlan}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <KV k="Early bird" v={state.earlyBird} />
-          <KV k="Inventory mode" v={state.inventoryMode} />
+          {state.earlyBird === "Applicable" && state.earlyBirdRules.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Early bird offers</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Booking window</th><th>Discount</th><th>Room type</th></tr></thead>
+                <tbody>
+                  {state.earlyBirdRules.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.days} {r.daysTo ? `to ${r.daysTo}` : ""} days before</td>
+                      <td>{r.unit === "%" ? `${r.discount}%` : `₹${r.discount}`}</td>
+                      <td>{r.roomType}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <KV k="Check-in restrictions" v={state.checkInRestrictions} />
+          {state.checkInRestrictions === "Applicable" && state.checkInRules.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Check-in rules</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Date range</th><th>Room type</th><th>Reason</th></tr></thead>
+                <tbody>
+                  {state.checkInRules.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.dateFrom} → {r.dateTo}</td>
+                      <td>{r.roomType}</td>
+                      <td>{r.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div>
             <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Cancellation (before check-in)</div>
@@ -144,7 +285,7 @@ export function Step7Preview() {
                     <td>{r.condition}</td>
                     <td>{r.type}</td>
                     <td>{r.type === "Days range" ? `${r.from} – ${r.to} days` : `₹${r.from}`}</td>
-                    <td>{r.penalty}%</td>
+                    <td>{r.penaltyUnit === "₹" ? `₹${r.penalty}` : `${r.penalty}%`}</td>
                     <td>{r.processingFees ? `${r.processingFees}%` : "—"}</td>
                   </tr>
                 ))}
@@ -161,19 +302,54 @@ export function Step7Preview() {
                     <td>{r.condition}</td>
                     <td>{r.type}</td>
                     <td>{r.type === "Days range" ? `${r.from} – ${r.to} days` : `₹${r.from}`}</td>
-                    <td>{r.penalty}%</td>
+                    <td>{r.penaltyUnit === "₹" ? `₹${r.penalty}` : `${r.penalty}%`}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div>
-            <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Blackouts</div>
-            <table className="cc-table cc-table-compact">
-              <thead><tr><th>Room</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
-              <tbody>{state.blackouts.map((b) => <tr key={b.id}><td>{b.roomType}</td><td>{b.from}</td><td>{b.to}</td><td>{b.reason}</td></tr>)}</tbody>
-            </table>
-          </div>
+          
+          <KV k="Inventory mode" v={state.inventoryMode} />
+          
+          {state.minLOS && state.minLOS.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>MinLOS (Minimum Length of Stay)</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Restriction type</th><th>Date range</th><th>Min nights</th><th>Room type</th></tr></thead>
+                <tbody>
+                  {state.minLOS.map((m) => (
+                    <tr key={m.id}>
+                      <td>{m.restrictionType}</td>
+                      <td>{m.appliesToFrom} → {m.appliesToTo}</td>
+                      <td>{m.minNights}</td>
+                      <td>{m.roomType}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {state.blackouts && state.blackouts.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Blackouts</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Room</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
+                <tbody>{state.blackouts.map((b) => <tr key={b.id}><td>{b.roomType}</td><td>{b.from}</td><td>{b.to}</td><td>{b.reason}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+          
+          {state.stopSale && state.stopSale.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Stop sale</div>
+              <table className="cc-table cc-table-compact">
+                <thead><tr><th>Room</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
+                <tbody>{state.stopSale.map((b) => <tr key={b.id}><td>{b.roomType}</td><td>{b.from}</td><td>{b.to}</td><td>{b.reason}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+
           <div>
             <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Holding rules</div>
             <table className="cc-table cc-table-compact">
@@ -260,7 +436,24 @@ function PriceRows({ seasonId, roomId, roomName }: { seasonId: string; roomId: s
         return (
           <tr key={m}>
             <td style={{ paddingLeft: 24 }}>{m}</td>
-            <td>{m === "EP" ? (c.base ? `₹${c.base}` : "—") : (c.enabled ? `+₹${c.addonPrice || 0}` : "—")}</td>
+            <td>
+              {m === "EP"
+                ? (c.base ? `₹${c.base}` : "—")
+                : c.enabled
+                  ? (() => {
+                      const epBase = parseFloat((cells["EP"] || {}).base || "0");
+                      const addon = parseFloat(c.addonPrice || "0");
+                      const total = epBase + addon;
+                      return (
+                        <PriceTooltip
+                          total={`₹${total}`}
+                          tip={`₹${epBase} base + ₹${addon} addon`}
+                        />
+                      );
+                    })()
+                  : "—"
+              }
+            </td>
             <td>{c.aweb ? `₹${c.aweb}` : "—"}</td>
             <td>{c.p1 ? `₹${c.p1}` : "—"}</td>
             <td>{c.p2 ? `₹${c.p2}` : "—"}</td>

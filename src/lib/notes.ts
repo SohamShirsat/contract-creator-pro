@@ -1,6 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
-import fs from "node:fs";
-import path from "node:path";
+const STORAGE_KEY = "contract_creator_notes";
 
 export interface Note {
   id: string;
@@ -9,48 +7,43 @@ export interface Note {
   createdAt: string;
 }
 
-// Stored in notes.json at project root — local dev only.
-const FILE = path.resolve(process.cwd(), "notes.json");
-
-function read(): Note[] {
+function load(): Note[] {
   try {
-    return (JSON.parse(fs.readFileSync(FILE, "utf-8")) as { notes: Note[] }).notes ?? [];
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    return (JSON.parse(raw) as { notes: Note[] }).notes ?? [];
   } catch {
     return [];
   }
 }
 
-function write(notes: Note[]) {
-  fs.writeFileSync(FILE, JSON.stringify({ notes }, null, 2), "utf-8");
+function save(notes: Note[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ notes }));
 }
 
-export const getNotes = createServerFn({ method: "GET" }).handler(() => read());
+export function getNotes(): Note[] {
+  return load();
+}
 
-export const addNote = createServerFn({ method: "POST" })
-  .inputValidator((d: { step: number; text: string }) => d)
-  .handler(({ data }) => {
-    const note: Note = {
-      id: Math.random().toString(36).slice(2, 10),
-      step: data.step,
-      text: data.text,
-      createdAt: new Date().toISOString(),
-    };
-    write([...read(), note]);
-    return note;
-  });
+export function addNote(step: number, text: string): Note {
+  const note: Note = {
+    id: Math.random().toString(36).slice(2, 10),
+    step,
+    text,
+    createdAt: new Date().toISOString(),
+  };
+  save([...load(), note]);
+  return note;
+}
 
-export const deleteNote = createServerFn({ method: "POST" })
-  .inputValidator((d: { id: string }) => d)
-  .handler(({ data }) => {
-    write(read().filter((n) => n.id !== data.id));
-  });
+export function deleteNote(id: string) {
+  save(load().filter((n) => n.id !== id));
+}
 
-export const clearStepNotes = createServerFn({ method: "POST" })
-  .inputValidator((d: { step: number }) => d)
-  .handler(({ data }) => {
-    write(read().filter((n) => n.step !== data.step));
-  });
+export function clearStepNotes(step: number) {
+  save(load().filter((n) => n.step !== step));
+}
 
-export const clearAllNotes = createServerFn({ method: "POST" }).handler(() => {
-  write([]);
-});
+export function clearAllNotes() {
+  save([]);
+}

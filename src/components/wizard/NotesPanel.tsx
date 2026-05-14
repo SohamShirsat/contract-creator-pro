@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useContract } from "@/lib/contract";
 import { getNotes, addNote, deleteNote, clearStepNotes, clearAllNotes, type Note } from "@/lib/notes";
 
@@ -16,52 +16,44 @@ function fmtDate(iso: string) {
 export function NotesPanel() {
   const { step } = useContract();
   const [open, setOpen] = useState(false);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<Note[]>(() => getNotes());
   const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   const stepNotes = notes.filter((n) => n.step === step);
   const totalCount = notes.length;
 
-  const refresh = useCallback(async () => {
-    const data = await getNotes();
-    setNotes(data);
+  const refresh = useCallback(() => {
+    setNotes(getNotes());
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     const trimmed = text.trim();
-    if (!trimmed || saving) return;
-    setSaving(true);
-    await addNote({ data: { step, text: trimmed } });
+    if (!trimmed) return;
+    addNote(step, trimmed);
     setText("");
-    await refresh();
-    setSaving(false);
+    refresh();
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteNote({ data: { id } });
-    await refresh();
+  const handleDelete = (id: string) => {
+    deleteNote(id);
+    refresh();
   };
 
-  const handleClearStep = async () => {
-    await clearStepNotes({ data: { step } });
-    await refresh();
+  const handleClearStep = () => {
+    clearStepNotes(step);
+    refresh();
   };
 
-  const handleClearAll = async () => {
+  const handleClearAll = () => {
     if (!confirmClearAll) {
       setConfirmClearAll(true);
       setTimeout(() => setConfirmClearAll(false), 3000);
       return;
     }
-    await clearAllNotes();
+    clearAllNotes();
     setConfirmClearAll(false);
-    await refresh();
+    refresh();
   };
 
   return (
@@ -90,7 +82,6 @@ export function NotesPanel() {
           userSelect: "none",
         }}
       >
-        {/* Sticky note icon (inline SVG) */}
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#78350f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2z" />
           <path d="M16 3v5h5" />
@@ -112,7 +103,6 @@ export function NotesPanel() {
           </span>
         )}
 
-        {/* Chevron */}
         <svg
           width="12" height="12"
           viewBox="0 0 24 24" fill="none" stroke="#78350f" strokeWidth="2.5"
@@ -222,18 +212,18 @@ export function NotesPanel() {
           />
           <button
             onClick={handleAdd}
-            disabled={!text.trim() || saving}
+            disabled={!text.trim()}
             style={{
               marginTop: 6,
               width: "100%",
               height: 34,
-              background: text.trim() && !saving ? "#f59e0b" : "#fde047",
-              color: text.trim() && !saving ? "white" : "#92400e",
+              background: text.trim() ? "#f59e0b" : "#fde047",
+              color: text.trim() ? "white" : "#92400e",
               border: "none",
               borderRadius: 6,
               fontWeight: 600,
               fontSize: 12.5,
-              cursor: text.trim() && !saving ? "pointer" : "not-allowed",
+              cursor: text.trim() ? "pointer" : "not-allowed",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -244,10 +234,9 @@ export function NotesPanel() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            {saving ? "Saving…" : "Add Note"}
+            Add Note
           </button>
 
-          {/* Clear all */}
           {totalCount > 0 && (
             <button
               onClick={handleClearAll}
@@ -294,7 +283,6 @@ function NoteCard({ note, onDelete }: { note: Note; onDelete: (id: string) => vo
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Delete button */}
       <button
         onClick={() => onDelete(note.id)}
         title="Delete note"

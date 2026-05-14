@@ -11,7 +11,7 @@ export function Step5Tax() {
   return (
     <div className="cc-card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 className="cc-section-title" style={{ marginBottom: 0 }}>Tax & Fees</h3>
+        <h3 className="cc-section-title" style={{ marginBottom: 0 }}>Surcharges, Fees & Tax</h3>
         <button className="cc-btn cc-btn-primary" onClick={() => { setDraft(blank); setOpen(true); }}>Add</button>
       </div>
 

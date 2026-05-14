@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useContract, type MealPlan, type Season, type Room, type PriceCell } from "@/lib/contract";
+import { useContract, type MealPlan, type Season, type Room, type PriceCell, type SeasonInterval } from "@/lib/contract";
 import { Modal } from "./Modal";
 
 const SEASON_TYPES: Season["type"][] = ["Peak", "Shoulder", "Low", "Off"];
@@ -7,7 +7,7 @@ const SEASON_TYPES: Season["type"][] = ["Peak", "Shoulder", "Low", "Off"];
 export function Step2Pricing() {
   const { state, setState, uid } = useContract();
   const [seasonModal, setSeasonModal] = useState<{ open: boolean; editing?: Season }>({ open: false });
-  const [draftSeason, setDraftSeason] = useState<Season>({ id: "", name: "", type: "Peak", from: "", to: "" });
+  const [draftSeason, setDraftSeason] = useState<Season>({ id: "", name: "", type: "Peak", dateIntervals: [] });
 
   const activeSeason = state.seasons.find((s) => s.id === state.activeSeasonId)!;
   const childTiers = state.childTiers;
@@ -38,11 +38,11 @@ export function Step2Pricing() {
     }));
 
   const openAddSeason = () => {
-    setDraftSeason({ id: "", name: "", type: "Peak", from: "", to: "" });
+    setDraftSeason({ id: "", name: "", type: "Peak", dateIntervals: [{ id: uid(), from: "", to: "" }] });
     setSeasonModal({ open: true });
   };
   const openEditSeason = (s: Season) => {
-    setDraftSeason(s);
+    setDraftSeason({ ...s, dateIntervals: s.dateIntervals.length ? s.dateIntervals : [{ id: uid(), from: "", to: "" }] });
     setSeasonModal({ open: true, editing: s });
   };
   const saveSeason = () => {
@@ -53,6 +53,21 @@ export function Step2Pricing() {
       setState((s) => ({ ...s, seasons: [...s.seasons, newSeason], activeSeasonId: newSeason.id }));
     }
     setSeasonModal({ open: false });
+  };
+
+  const addInterval = () =>
+    setDraftSeason((d) => ({ ...d, dateIntervals: [...d.dateIntervals, { id: uid(), from: "", to: "" }] }));
+  const removeInterval = (id: string) =>
+    setDraftSeason((d) => ({ ...d, dateIntervals: d.dateIntervals.filter((i) => i.id !== id) }));
+  const updateInterval = (id: string, patch: Partial<SeasonInterval>) =>
+    setDraftSeason((d) => ({ ...d, dateIntervals: d.dateIntervals.map((i) => (i.id === id ? { ...i, ...patch } : i)) }));
+
+  const formatSeasonDates = (s: Season) => {
+    if (!s.dateIntervals.length) return "No dates";
+    const first = s.dateIntervals[0];
+    const extra = s.dateIntervals.length > 1 ? ` +${s.dateIntervals.length - 1} more` : "";
+    if (!first.from && !first.to) return "No dates";
+    return `${first.from || "—"} → ${first.to || "—"}${extra}`;
   };
 
   return (
@@ -76,42 +91,105 @@ export function Step2Pricing() {
                 background: s.id === state.activeSeasonId ? "var(--color-accent)" : "white",
                 cursor: "pointer",
                 display: "flex",
-                gap: 12,
-                alignItems: "center",
+                flexDirection: "column",
+                gap: 4,
+                alignItems: "flex-start",
                 fontWeight: 500,
+                minWidth: 160,
               }}
             >
-              {s.name}
-              <span
-                onClick={(e) => { e.stopPropagation(); openEditSeason(s); }}
-                style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}
-              >
-                ✎
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+                <span>{s.name}</span>
+                <span
+                  onClick={(e) => { e.stopPropagation(); openEditSeason(s); }}
+                  style={{ fontSize: 13, color: "var(--color-muted-foreground)", marginLeft: "auto" }}
+                >
+                  ✎
+                </span>
+              </div>
+              <span style={{ fontSize: 11, color: "var(--color-muted-foreground)", fontWeight: 400 }}>{formatSeasonDates(s)}</span>
             </button>
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16, maxWidth: 600 }}>
-          <div>
-            <label className="cc-label">Date from</label>
-            <input
-              type="date"
-              className="cc-input"
-              value={activeSeason.from}
-              onChange={(e) => setState((s) => ({ ...s, seasons: s.seasons.map((x) => (x.id === activeSeason.id ? { ...x, from: e.target.value } : x)) }))}
-            />
+        {/* Active season interval editor */}
+        {activeSeason && (
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+              Date intervals for <span style={{ color: "var(--color-primary)" }}>{activeSeason.name}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {activeSeason.dateIntervals.map((interval, idx) => (
+                <div key={interval.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", minWidth: 70 }}>Interval {idx + 1}</span>
+                  <input
+                    type="date"
+                    className="cc-input"
+                    style={{ width: 180 }}
+                    value={interval.from}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setState((s) => ({
+                        ...s,
+                        seasons: s.seasons.map((sea) =>
+                          sea.id === activeSeason.id
+                            ? { ...sea, dateIntervals: sea.dateIntervals.map((i) => i.id === interval.id ? { ...i, from: val } : i) }
+                            : sea
+                        ),
+                      }));
+                    }}
+                  />
+                  <span style={{ color: "var(--color-muted-foreground)" }}>→</span>
+                  <input
+                    type="date"
+                    className="cc-input"
+                    style={{ width: 180 }}
+                    value={interval.to}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setState((s) => ({
+                        ...s,
+                        seasons: s.seasons.map((sea) =>
+                          sea.id === activeSeason.id
+                            ? { ...sea, dateIntervals: sea.dateIntervals.map((i) => i.id === interval.id ? { ...i, to: val } : i) }
+                            : sea
+                        ),
+                      }));
+                    }}
+                  />
+                  {activeSeason.dateIntervals.length > 1 && (
+                    <button className="cc-icon-btn" onClick={() => {
+                      setState((s) => ({
+                        ...s,
+                        seasons: s.seasons.map((sea) =>
+                          sea.id === activeSeason.id
+                            ? { ...sea, dateIntervals: sea.dateIntervals.filter((i) => i.id !== interval.id) }
+                            : sea
+                        ),
+                      }));
+                    }}>✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              className="cc-btn cc-btn-outline"
+              style={{ marginTop: 8 }}
+              onClick={() => {
+                setState((s) => ({
+                  ...s,
+                  seasons: s.seasons.map((sea) =>
+                    sea.id === activeSeason.id
+                      ? { ...sea, dateIntervals: [...sea.dateIntervals, { id: uid(), from: "", to: "" }] }
+                      : sea
+                  ),
+                }));
+              }}
+            >
+              + Add date interval
+            </button>
           </div>
-          <div>
-            <label className="cc-label">Date to</label>
-            <input
-              type="date"
-              className="cc-input"
-              value={activeSeason.to}
-              onChange={(e) => setState((s) => ({ ...s, seasons: s.seasons.map((x) => (x.id === activeSeason.id ? { ...x, to: e.target.value } : x)) }))}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Pricing table */}
@@ -156,6 +234,14 @@ export function Step2Pricing() {
       {/* BAR */}
       <div className="cc-card">
         <h3 className="cc-section-title">BAR (Best Available Rates) discount</h3>
+        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 16, padding: "8px 12px", background: "oklch(0.97 0.01 220)", borderRadius: 8, border: "1px solid oklch(0.85 0.04 220)" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.1 220)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <span style={{ fontSize: 12, color: "oklch(0.4 0.08 220)", lineHeight: 1.5 }}>
+            Prices will be updated directly from PMS in real time and below discount will be applicable on rates.
+          </span>
+        </div>
         <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>
           <label className="cc-radio-row">
             <input type="radio" checked={state.barType === "Flat"} onChange={() => setState({ ...state, barType: "Flat" })} />
@@ -197,6 +283,7 @@ export function Step2Pricing() {
         </p>
       </div>
 
+      {/* Season modal */}
       <Modal
         open={seasonModal.open}
         onClose={() => setSeasonModal({ open: false })}
@@ -221,15 +308,26 @@ export function Step2Pricing() {
               ))}
             </div>
           </div>
-          <div>
-            <label className="cc-label">Date from</label>
-            <input type="date" className="cc-input" value={draftSeason.from} onChange={(e) => setDraftSeason({ ...draftSeason, from: e.target.value })} />
-          </div>
-          <div>
-            <label className="cc-label">Date to</label>
-            <input type="date" className="cc-input" value={draftSeason.to} onChange={(e) => setDraftSeason({ ...draftSeason, to: e.target.value })} />
-          </div>
         </div>
+
+        <div style={{ marginTop: 16 }}>
+          <label className="cc-label">Date intervals</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {draftSeason.dateIntervals.map((interval, idx) => (
+              <div key={interval.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", minWidth: 60 }}>Interval {idx + 1}</span>
+                <input type="date" className="cc-input" style={{ width: 160 }} value={interval.from} onChange={(e) => updateInterval(interval.id, { from: e.target.value })} />
+                <span>→</span>
+                <input type="date" className="cc-input" style={{ width: 160 }} value={interval.to} onChange={(e) => updateInterval(interval.id, { to: e.target.value })} />
+                {draftSeason.dateIntervals.length > 1 && (
+                  <button className="cc-icon-btn" onClick={() => removeInterval(interval.id)}>✕</button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button className="cc-btn cc-btn-outline" style={{ marginTop: 8 }} onClick={addInterval}>+ Add interval</button>
+        </div>
+
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 24 }}>
           <button className="cc-btn cc-btn-ghost" onClick={() => setSeasonModal({ open: false })}>Cancel</button>
           <button className="cc-btn cc-btn-primary" onClick={saveSeason}>
@@ -249,7 +347,6 @@ function MealRow({
   baseValue,
   childCols,
   occCols,
-  disabledCols,
 }: {
   meal: MealPlan;
   cell: PriceCell;
@@ -257,8 +354,7 @@ function MealRow({
   isBase: boolean;
   baseValue?: string;
   childCols: { key: keyof PriceCell; label: string }[];
-  occCols?: { key: keyof PriceCell; label: string; disabled?: boolean }[];
-  disabledCols?: string[];
+  occCols: { key: keyof PriceCell; label: string; disabled?: boolean }[];
 }) {
   const calc = (() => {
     const b = parseFloat(baseValue || "0");
@@ -273,22 +369,15 @@ function MealRow({
           <input className="cc-input" style={{ width: 110 }} value={cell.base || ""} onChange={(e) => setCell({ base: e.target.value })} />
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="checkbox"
-              checked={!!cell.enabled}
-              onChange={(e) => setCell({ enabled: e.target.checked })}
-              style={{ accentColor: "var(--color-primary)" }}
-            />
-            <input
-              className="cc-input"
-              style={{ width: 90 }}
-              disabled={!cell.enabled}
-              value={cell.addonPrice || ""}
-              onChange={(e) => setCell({ addonPrice: e.target.value })}
-            />
+            <input type="checkbox" checked={!!cell.enabled} onChange={(e) => setCell({ enabled: e.target.checked })} style={{ accentColor: "var(--color-primary)" }} />
+            <input className="cc-input" style={{ width: 90 }} disabled={!cell.enabled} value={cell.addonPrice || ""} onChange={(e) => setCell({ addonPrice: e.target.value })} />
             {cell.enabled && <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>{calc}</span>}
           </div>
         )}
+      </td>
+      {/* AWEB column */}
+      <td>
+        <input className="cc-input" style={{ width: 90 }} value={cell.aweb || ""} onChange={(e) => setCell({ aweb: e.target.value })} />
       </td>
       {childCols.map((c) => (
         <td key={c.key}>
@@ -300,12 +389,12 @@ function MealRow({
           />
         </td>
       ))}
-      {occCols?.map((c) => (
+      {occCols.map((c) => (
         <td key={c.key}>
           <input
             className="cc-input"
-            style={{ width: 80 }}
-            disabled={c.disabled || disabledCols?.includes(c.key as string)}
+            style={{ width: 80, opacity: c.disabled ? 0.4 : 1 }}
+            disabled={c.disabled}
             value={(cell[c.key] as string) || ""}
             onChange={(e) => setCell({ [c.key]: e.target.value } as Partial<PriceCell>)}
           />
@@ -332,11 +421,14 @@ function PerRoomTable({
     tier2 && { key: "cweb2" as const, label: `CWEB(${tier2.ageFrom}y–${tier2.ageTo}y)` },
     tier2 && { key: "cnb2" as const, label: `CNB(${tier2.ageFrom}y–${tier2.ageTo}y)` },
   ].filter(Boolean) as { key: keyof PriceCell; label: string }[];
-  const occCols = [
-    { key: "p1" as const, label: "1 P" },
-    { key: "p2" as const, label: "2 P" },
-    { key: "p3" as const, label: "3 P" },
+
+  const allOccCols: { key: keyof PriceCell; label: string }[] = [
+    { key: "p1", label: "1P" },
+    { key: "p2", label: "2P" },
+    { key: "p3", label: "3P" },
+    { key: "p4", label: "4P" },
   ];
+
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="cc-table">
@@ -344,21 +436,23 @@ function PerRoomTable({
           <tr>
             <th>Room type & Meal</th>
             <th>Base</th>
+            <th>AWEB</th>
             {childCols.map((c) => <th key={c.key}>{c.label}</th>)}
-            {occCols.map((c) => <th key={c.key}>{c.label}</th>)}
+            {allOccCols.map((c) => <th key={c.key}>{c.label}</th>)}
           </tr>
         </thead>
         <tbody>
           {rooms.map((r) => {
-            const maxGuest = r.maxAdult + r.maxChild;
-            const disabled: string[] = [];
-            if (maxGuest < 2) disabled.push("p2");
-            if (maxGuest < 3) disabled.push("p3");
+            // disable cols where pax >= maxAdult (base = maxAdult pax; above maxAdult = can't fit)
+            const occCols = allOccCols.map((c) => {
+              const paxNum = parseInt(c.key.slice(1)); // p1→1, p2→2, p3→3, p4→4
+              return { ...c, disabled: paxNum >= r.maxAdult };
+            });
             return (
               <FragmentRoom
                 key={r.id}
                 room={r}
-                colSpan={2 + childCols.length + occCols.length}
+                colSpan={3 + childCols.length + allOccCols.length}
                 onRemove={() => removeRoom(r.id)}
               >
                 {mealPlans.map((m) => (
@@ -370,7 +464,7 @@ function PerRoomTable({
                     isBase={m === "EP"}
                     baseValue={getCell(r.id, "EP").base}
                     childCols={childCols}
-                    occCols={occCols.map((c) => ({ ...c, disabled: disabled.includes(c.key) }))}
+                    occCols={occCols}
                   />
                 ))}
               </FragmentRoom>
@@ -448,18 +542,10 @@ function FragmentRoom({ room, colSpan, onRemove, children }: { room: Room; colSp
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <strong>{room.name}</strong>
               <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>
-                Max adult allowed: {room.maxAdult}, Max child allowed: {room.maxChild}, Max guest: {room.maxAdult + room.maxChild}
+                Max adult: {room.maxAdult} · Max child: {room.maxChild} · Base: {room.maxAdult} pax
               </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                  background: "var(--color-primary)",
-                  color: "white",
-                }}
-              >
-                {room.maxAdult + room.maxChild} pax
+              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "var(--color-primary)", color: "white" }}>
+                {room.maxAdult} pax base
               </span>
             </div>
             <button onClick={onRemove} style={{ background: "none", border: 0, color: "var(--color-destructive)", cursor: "pointer", fontSize: 13 }}>

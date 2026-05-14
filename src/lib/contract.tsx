@@ -13,12 +13,17 @@ export interface ChildTier {
   value: string;
 }
 
+export interface SeasonInterval {
+  id: string;
+  from: string;
+  to: string;
+}
+
 export interface Season {
   id: string;
   name: string;
   type: "Peak" | "Shoulder" | "Low" | "Off";
-  from: string;
-  to: string;
+  dateIntervals: SeasonInterval[];
 }
 
 export interface Room {
@@ -28,9 +33,10 @@ export interface Room {
   maxChild: number;
 }
 
-// pricing[seasonId][roomId][meal] = { base, addon, enabled, cweb1, cnb1, cweb2, cnb2, p1, p2, p3 }
+// pricing[seasonId][roomId][meal] = { base, aweb, addon, enabled, cweb1, cnb1, cweb2, cnb2, p1, p2, p3, p4 }
 export interface PriceCell {
   base?: string;
+  aweb?: string;
   addonPrice?: string;
   enabled?: boolean;
   cweb1?: string;
@@ -40,6 +46,7 @@ export interface PriceCell {
   p1?: string;
   p2?: string;
   p3?: string;
+  p4?: string;
 }
 
 export interface Addon {
@@ -51,7 +58,7 @@ export interface Addon {
   pricingBasis: "Per Person" | "Per Person Per Night" | "Per Room" | "Per Room Per Night";
   adultPrice?: string;
   childPrice?: string;
-  includeChild?: boolean;
+  sameAsAdult?: boolean;
   roomPrice?: string;
   applicableOn?: string;
   mandatory: boolean;
@@ -61,9 +68,11 @@ export interface Addon {
 export interface CancelRule {
   id: string;
   condition: string;
-  appliesWhen: string;
+  type: "Days range" | "Fixed charges";
+  from: string;
+  to: string;
   penalty: string;
-  processingFees: string;
+  processingFees?: string;
 }
 
 export interface Blackout {
@@ -85,7 +94,8 @@ export interface Holding {
 export interface MinLOS {
   id: string;
   restrictionType: string;
-  appliesTo: string;
+  appliesToFrom: string;
+  appliesToTo: string;
   minNights: string;
   roomType: string;
 }
@@ -109,17 +119,25 @@ export interface Tax {
   unit: "%" | "₹";
 }
 
+export interface Installment {
+  id: string;
+  amount: string;
+  when: "Before check-in" | "After check-out within";
+  days: string;
+}
+
 export interface ContractState {
   // step1
   contractName: string;
   hotelName: string;
-  thirdField: string;
+  hotelProperties: string[];
+  currency: "INR" | "USD" | "AED";
   pricingBasis: PricingBasis;
   mealPlans: MealPlan[];
   childRangeFrom: number;
   childRangeTo: number;
   childTiers: ChildTier[];
-  ratesType: "Flat" | "Threshold based";
+  ratesType: "Net" | "Commissionable rates";
   thresholdRooms: string;
   thresholdPeriod: "Month" | "Week";
   thresholdCommission: string;
@@ -135,12 +153,13 @@ export interface ContractState {
   addons: Addon[];
   // step4
   noShowPenalty: string;
-  noShowUnit: "%" | "₹" | "Nights";
   cancelBefore: CancelRule[];
   cancelAfter: CancelRule[];
   modificationCharges: "Applicable" | "Not applicable";
-  paymentPolicy: "Pay later at month end" | "Collect in installments";
-  installments: { id: string; amount: string; date: string }[];
+  paymentPolicy: "Pay full amount in advance" | "Pay at month end" | "Pay full amount at check-in" | "Pay full amount at check-out" | "Collect in installments";
+  installments: Installment[];
+  paymentDetails: boolean;
+  paymentDetailsContent: string;
   blackoutAll: boolean;
   blackouts: Blackout[];
   stopSale: Blackout[];
@@ -150,7 +169,7 @@ export interface ContractState {
   earlyBird: "Applicable" | "Not applicable";
   earlyBirdRules: { id: string; days: string; discount: string; unit: "%" | "₹"; roomType: string }[];
   checkInRestrictions: "Applicable" | "Not applicable";
-  checkInRules: { id: string; f1: string; f2: string; f3: string }[];
+  checkInRules: { id: string; dateFrom: string; dateTo: string; roomType: string; reason: string }[];
   inventoryMode: "Allotment" | "Free Sale";
   inventory: Inventory[];
   holding: Holding[];
@@ -165,10 +184,11 @@ export interface ContractState {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-const initial: ContractState = {
+export const initial: ContractState = {
   contractName: "Summit Hotels – Season 2025–26",
   hotelName: "The Grand Summit",
-  thirdField: "",
+  hotelProperties: ["The Grand Summit"],
+  currency: "INR",
   pricingBasis: "PerRoom",
   mealPlans: ["EP", "CP", "MAP"],
   childRangeFrom: 5,
@@ -177,13 +197,13 @@ const initial: ContractState = {
     { id: uid(), ageFrom: 5, ageTo: 8, occupancy: "Sharing with adults", bedding: "No Bed", pricingType: "% Adult rate", value: "50" },
     { id: uid(), ageFrom: 9, ageTo: 13, occupancy: "Own room", bedding: "With Bed", pricingType: "% Adult rate", value: "75" },
   ],
-  ratesType: "Flat",
+  ratesType: "Net",
   thresholdRooms: "10",
   thresholdPeriod: "Month",
   thresholdCommission: "5",
   seasons: [
-    { id: "s1", name: "Peak Season", type: "Peak", from: "2025-12-01", to: "2026-02-28" },
-    { id: "s2", name: "Low Season", type: "Low", from: "2026-03-01", to: "2026-11-30" },
+    { id: "s1", name: "Peak Season", type: "Peak", dateIntervals: [{ id: uid(), from: "2025-12-01", to: "2026-02-28" }] },
+    { id: "s2", name: "Low Season", type: "Low", dateIntervals: [{ id: uid(), from: "2026-03-01", to: "2026-11-30" }] },
   ],
   activeSeasonId: "s1",
   rooms: [
@@ -201,27 +221,28 @@ const initial: ContractState = {
   barFlat: "10",
   barRoomDiscounts: {},
   addons: [
-    { id: uid(), name: "Christmas Dinner", validOn: "Date range", dateFrom: "2025-12-25", dateTo: "2025-12-25", pricingBasis: "Per Person", adultPrice: "3000", childPrice: "3000", includeChild: true, applicableOn: "All rooms", mandatory: true },
-    { id: uid(), name: "New Year Eve Dinner", validOn: "Date range", dateFrom: "2025-12-31", dateTo: "2025-12-31", pricingBasis: "Per Person", adultPrice: "3500", childPrice: "3000", includeChild: true, applicableOn: "All rooms", mandatory: true },
+    { id: uid(), name: "Christmas Dinner", validOn: "Date range", dateFrom: "2025-12-25", dateTo: "2025-12-25", pricingBasis: "Per Person", adultPrice: "3000", childPrice: "3000", sameAsAdult: true, applicableOn: "All rooms", mandatory: true },
+    { id: uid(), name: "New Year Eve Dinner", validOn: "Date range", dateFrom: "2025-12-31", dateTo: "2025-12-31", pricingBasis: "Per Person", adultPrice: "3500", childPrice: "3000", sameAsAdult: false, applicableOn: "All rooms", mandatory: true },
     { id: uid(), name: "Honeymoon Package", validOn: "All dates", pricingBasis: "Per Room", roomPrice: "4500", applicableOn: "Suite Room", mandatory: false, additionalInfo: "Candle light dinner, Honeymoon cake, Flower Bed, Fruit basket, Badam Milk" },
-    { id: uid(), name: "Breakfast", validOn: "All dates", pricingBasis: "Per Person", adultPrice: "500", childPrice: "300", includeChild: true, applicableOn: "All rooms", mandatory: false, additionalInfo: "For child below the age of 12 years." },
+    { id: uid(), name: "Breakfast", validOn: "All dates", pricingBasis: "Per Person", adultPrice: "500", childPrice: "300", sameAsAdult: false, applicableOn: "All rooms", mandatory: false, additionalInfo: "For child below the age of 12 years." },
   ],
   noShowPenalty: "100",
-  noShowUnit: "%",
   cancelBefore: [
-    { id: uid(), condition: "Before Check-in", appliesWhen: "30+ days", penalty: "0", processingFees: "0" },
-    { id: uid(), condition: "Partial cancellation", appliesWhen: "15-30 days", penalty: "25", processingFees: "5" },
+    { id: uid(), condition: "Before Check-in", type: "Days range", from: "30", to: "999", penalty: "0", processingFees: "" },
+    { id: uid(), condition: "Partial cancellation", type: "Days range", from: "15", to: "30", penalty: "25", processingFees: "5" },
   ],
   cancelAfter: [
-    { id: uid(), condition: "Early departure", appliesWhen: "", penalty: "50", processingFees: "10" },
-    { id: uid(), condition: "Partial cancellation", appliesWhen: "", penalty: "100", processingFees: "5" },
+    { id: uid(), condition: "Early departure", type: "Fixed charges", from: "", to: "", penalty: "50", processingFees: "10" },
+    { id: uid(), condition: "Partial cancellation", type: "Fixed charges", from: "", to: "", penalty: "100", processingFees: "5" },
   ],
   modificationCharges: "Not applicable",
-  paymentPolicy: "Pay later at month end",
+  paymentPolicy: "Pay at month end",
   installments: [
-    { id: uid(), amount: "50", date: "2025-11-01" },
-    { id: uid(), amount: "50", date: "2025-12-01" },
+    { id: uid(), amount: "50", when: "Before check-in", days: "30" },
+    { id: uid(), amount: "50", when: "Before check-in", days: "7" },
   ],
+  paymentDetails: false,
+  paymentDetailsContent: "",
   blackoutAll: false,
   blackouts: [
     { id: uid(), roomType: "Standard Room", from: "2026-02-01", to: "2026-02-01", reason: "Festival" },
@@ -229,14 +250,14 @@ const initial: ContractState = {
   ],
   stopSale: [],
   minLOS: [
-    { id: uid(), restrictionType: "Minimum stay", appliesTo: "Peak season bookings", minNights: "3", roomType: "All rooms" },
+    { id: uid(), restrictionType: "Minimum stay", appliesToFrom: "2025-12-01", appliesToTo: "2026-02-28", minNights: "3", roomType: "All rooms" },
   ],
   focPolicy: "Not applicable",
   focTiers: [{ id: uid(), from: "10", to: "15", roomType: "Standard Room", mealPlan: "EP" }],
   earlyBird: "Not applicable",
   earlyBirdRules: [{ id: uid(), days: "60", discount: "10", unit: "%", roomType: "All rooms" }],
   checkInRestrictions: "Not applicable",
-  checkInRules: [{ id: uid(), f1: "", f2: "", f3: "" }],
+  checkInRules: [{ id: uid(), dateFrom: "", dateTo: "", roomType: "All rooms", reason: "" }],
   inventoryMode: "Allotment",
   inventory: [
     { roomId: "r1", pms: "20", allocated: "10", release: "30" },
@@ -263,6 +284,7 @@ interface Ctx {
   step: number;
   setStep: (n: number) => void;
   uid: () => string;
+  fillDummy: () => void;
 }
 
 const ContractCtx = createContext<Ctx | null>(null);
@@ -270,8 +292,9 @@ const ContractCtx = createContext<Ctx | null>(null);
 export function ContractProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ContractState>(initial);
   const [step, setStep] = useState(1);
+  const fillDummy = () => setState(initial);
   return (
-    <ContractCtx.Provider value={{ state, setState, step, setStep, uid }}>
+    <ContractCtx.Provider value={{ state, setState, step, setStep, uid, fillDummy }}>
       {children}
     </ContractCtx.Provider>
   );

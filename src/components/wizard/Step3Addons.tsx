@@ -18,7 +18,7 @@ export function Step3Addons() {
           pricingBasis: "Per Person",
           adultPrice: "",
           childPrice: "",
-          includeChild: false,
+          sameAsAdult: false,
           applicableOn: "All rooms",
           mandatory: false,
         },
@@ -84,7 +84,20 @@ export function Step3Addons() {
                   </div>
                   <div>
                     <label className="cc-label">Child price (₹)</label>
-                    <input className="cc-input" value={a.childPrice || ""} onChange={(e) => update(a.id, { childPrice: e.target.value })} />
+                    <input
+                      className="cc-input"
+                      value={a.sameAsAdult ? (a.adultPrice || "") : (a.childPrice || "")}
+                      disabled={!!a.sameAsAdult}
+                      onChange={(e) => update(a.id, { childPrice: e.target.value })}
+                    />
+                    <label className="cc-radio-row" style={{ marginTop: 6, fontSize: 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!a.sameAsAdult}
+                        onChange={(e) => update(a.id, { sameAsAdult: e.target.checked })}
+                      />
+                      Same as adult
+                    </label>
                   </div>
                 </>
               ) : (
@@ -95,26 +108,20 @@ export function Step3Addons() {
               )}
             </div>
 
-            <div style={{ marginTop: 16, display: "flex", gap: 24, alignItems: "flex-end", flexWrap: "wrap" }}>
-              {isPerPerson ? (
-                <label className="cc-radio-row">
-                  <input type="checkbox" checked={!!a.includeChild} onChange={(e) => update(a.id, { includeChild: e.target.checked })} />
-                  Include child price
-                </label>
-              ) : (
-                <div style={{ minWidth: 240 }}>
-                  <label className="cc-label">Applicable on</label>
-                  <select className="cc-input" value={a.applicableOn} onChange={(e) => update(a.id, { applicableOn: e.target.value })}>
-                    <option>All rooms</option>
-                    {state.rooms.map((r) => <option key={r.id}>{r.name}</option>)}
-                  </select>
-                </div>
-              )}
+            <div style={{ marginTop: 16, display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
+              {/* Applicable on — shown for all add-ons */}
+              <div style={{ minWidth: 200 }}>
+                <label className="cc-label">Applicable on</label>
+                <select className="cc-input" value={a.applicableOn || "All rooms"} onChange={(e) => update(a.id, { applicableOn: e.target.value })}>
+                  <option>All rooms</option>
+                  {state.rooms.map((r) => <option key={r.id}>{r.name}</option>)}
+                </select>
+              </div>
               <label className="cc-radio-row">
                 <input type="checkbox" checked={a.mandatory} onChange={(e) => update(a.id, { mandatory: e.target.checked })} />
                 Mandatory
               </label>
-              <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
                 <label className="cc-label">Additional information</label>
                 <input className="cc-input" value={a.additionalInfo || ""} onChange={(e) => update(a.id, { additionalInfo: e.target.value })} />
               </div>

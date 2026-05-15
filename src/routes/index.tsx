@@ -71,7 +71,7 @@ function Wizard() {
             </button>
           ) : (
             <button className="cc-btn cc-btn-primary cc-btn-lg" onClick={() => setSuccess(true)}>
-              Publish Contract
+              Create Contract
             </button>
           )}
         </div>

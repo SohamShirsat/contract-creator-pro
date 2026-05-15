@@ -16,7 +16,7 @@ function Card({ title, action, children }: { title: string; action?: React.React
 }
 
 export function Step4Policies() {
-  const { state, setState, uid } = useContract();
+  const { state, setState, uid, fillDummy } = useContract();
   const [cancelModal, setCancelModal] = useState<{ open: boolean; type: "before" | "after" }>({ open: false, type: "before" });
   const [minlosModal, setMinlosModal] = useState(false);
   const [draftCancel, setDraftCancel] = useState<CancelRule>({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", penaltyUnit: "%", processingFees: "" });
@@ -58,6 +58,11 @@ export function Step4Policies() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <h2 className="cc-page-title">Policies</h2>
+        <button className="cc-btn cc-btn-outline" onClick={fillDummy} style={{ height: 36, fontSize: 13 }}>Fill dummy data</button>
+      </div>
+
       {/* No show */}
       <Card title="No show policy">
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -88,7 +93,7 @@ export function Step4Policies() {
         <table className="cc-table">
           <thead>
             <tr>
-              <th>Condition</th><th>Type</th><th>Applies when (days range)</th><th>Penalty</th><th>Processing fees (optional)</th><th></th>
+              <th>Condition</th><th>Type</th><th>Applies when (days range)</th><th>Penalty</th><th></th><th>Processing fees (optional)</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -120,23 +125,29 @@ export function Step4Policies() {
                   )}
                 </td>
                 <td>
-                  <div style={{ display: "flex", gap: 0 }}>
-                    <input
-                      className="cc-input"
-                      style={{ width: 80, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-                      value={r.penalty}
-                      onChange={(e) => updateCancel("cancelBefore", r.id, { penalty: e.target.value })}
-                    />
-                    <select
-                      className="cc-input"
-                      style={{ width: 58, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
-                      value={r.penaltyUnit || "%"}
-                      onChange={(e) => updateCancel("cancelBefore", r.id, { penaltyUnit: e.target.value as "%" | "₹" })}
-                    >
-                      <option>%</option><option>₹</option>
-                    </select>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 0 }}>
+                      <input
+                        className="cc-input"
+                        style={{ width: 80, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                        value={r.penalty}
+                        onChange={(e) => updateCancel("cancelBefore", r.id, { penalty: e.target.value })}
+                      />
+                      <select
+                        className="cc-input"
+                        style={{ width: 58, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+                        value={r.penaltyUnit || "%"}
+                        onChange={(e) => updateCancel("cancelBefore", r.id, { penaltyUnit: e.target.value as "%" | "₹" })}
+                      >
+                        <option>%</option><option>₹</option>
+                      </select>
+                    </div>
+                    {(r.penaltyUnit || "%") === "%" && (
+                      <span style={{ fontSize: 13, color: "var(--color-muted-foreground)", whiteSpace: "nowrap" }}>of the booking value</span>
+                    )}
                   </div>
                 </td>
+                <td style={{ textAlign: "center", color: "var(--color-muted-foreground)", fontWeight: 600 }}>+</td>
                 <td><input className="cc-input" placeholder="Optional" value={r.processingFees || ""} onChange={(e) => updateCancel("cancelBefore", r.id, { processingFees: e.target.value })} /></td>
                 <td><button className="cc-icon-btn" onClick={() => removeCancel("cancelBefore", r.id)}>✕</button></td>
               </tr>
@@ -153,7 +164,7 @@ export function Step4Policies() {
         <table className="cc-table">
           <thead>
             <tr>
-              <th>Condition</th><th>Penalty</th><th>Processing fees (optional)</th><th></th>
+              <th>Condition</th><th>Penalty</th><th></th><th>Processing fees (optional)</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -185,10 +196,11 @@ export function Step4Policies() {
                       </select>
                     </div>
                     {(r.penaltyUnit || "%") === "%" && (
-                      <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>of the booking</span>
+                      <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>of the booking value</span>
                     )}
                   </div>
                 </td>
+                <td style={{ textAlign: "center", color: "var(--color-muted-foreground)", fontWeight: 600 }}>+</td>
                 <td><input className="cc-input" placeholder="Optional" value={r.processingFees || ""} onChange={(e) => updateCancel("cancelAfter", r.id, { processingFees: e.target.value })} /></td>
                 <td><button className="cc-icon-btn" onClick={() => removeCancel("cancelAfter", r.id)}>✕</button></td>
               </tr>
@@ -210,13 +222,13 @@ export function Step4Policies() {
         {state.modificationCharges === "Applicable" && (
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
             {(state.modificationRules || []).map((mr) => (
-              <div key={mr.id} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <input className="cc-input" placeholder="Charge type" value={mr.chargeType} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, chargeType: e.target.value } : x) }))} />
-                <input className="cc-input" placeholder="Applies when" value={mr.appliesWhen} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, appliesWhen: e.target.value } : x) }))} />
+              <div key={mr.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <input className="cc-input" style={{ flex: 1 }} placeholder="Charge type" value={mr.chargeType} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, chargeType: e.target.value } : x) }))} />
+                <input className="cc-input" style={{ flex: 1 }} placeholder="Applies when" value={mr.appliesWhen} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, appliesWhen: e.target.value } : x) }))} />
                 <input className="cc-input" placeholder="Value" style={{ width: 100 }} value={mr.value} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, value: e.target.value } : x) }))} />
-                <span>+</span>
+                <span style={{ fontSize: 18, color: "var(--color-muted-foreground)" }}>+</span>
                 <input className="cc-input" placeholder="Additional" style={{ width: 100 }} value={mr.additional} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, additional: e.target.value } : x) }))} />
-                <select className="cc-input" style={{ width: 90 }} value={mr.unit} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, unit: e.target.value as "%" | "₹" } : x) }))}>
+                <select className="cc-input" style={{ width: 80 }} value={mr.unit} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, unit: e.target.value as "%" | "₹" } : x) }))}>
                   <option>%</option><option>₹</option>
                 </select>
                 <button className="cc-icon-btn" onClick={() => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).filter((x) => x.id !== mr.id) }))}>✕</button>
@@ -229,9 +241,9 @@ export function Step4Policies() {
 
       {/* Payment */}
       <Card title="Payment policy">
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
           {PAYMENT_OPTIONS.map((v) => (
-            <label key={v} className="cc-radio-row">
+            <label key={v} className="cc-radio-row" style={{ marginBottom: 0 }}>
               <input type="radio" checked={state.paymentPolicy === v} onChange={() => setState({ ...state, paymentPolicy: v })} />
               {v}
             </label>
@@ -243,13 +255,16 @@ export function Step4Policies() {
             {state.installments.map((inst, i) => (
               <div key={inst.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <span style={{ fontSize: 13, minWidth: 100 }}>Installment {i + 1}</span>
-                <input
-                  className="cc-input"
-                  style={{ width: 100 }}
-                  placeholder="Amount %"
-                  value={inst.amount}
-                  onChange={(e) => setState((s) => ({ ...s, installments: s.installments.map((x) => x.id === inst.id ? { ...x, amount: e.target.value } : x) }))}
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    className="cc-input"
+                    style={{ width: 100 }}
+                    placeholder="Amount"
+                    value={inst.amount}
+                    onChange={(e) => setState((s) => ({ ...s, installments: s.installments.map((x) => x.id === inst.id ? { ...x, amount: e.target.value } : x) }))}
+                  />
+                  <span style={{ fontSize: 14, color: "var(--color-foreground)" }}>%</span>
+                </div>
                 <select
                   className="cc-input"
                   style={{ width: 200 }}
@@ -274,8 +289,9 @@ export function Step4Policies() {
           </div>
         )}
 
+        <hr style={{ margin: "20px 0", border: 0, borderTop: "1px solid var(--color-border)" }} />
         {/* Payment details checkbox */}
-        <div style={{ marginTop: 16 }}>
+        <div>
           <label className="cc-radio-row">
             <input type="checkbox" checked={state.paymentDetails} onChange={(e) => setState({ ...state, paymentDetails: e.target.checked })} />
             Add payment details
@@ -641,7 +657,7 @@ export function Step4Policies() {
                 </select>
               </div>
               {(draftCancel.penaltyUnit || "%") === "%" && (
-                <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>of the booking</span>
+                <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>of the booking value</span>
               )}
             </div>
           </div>

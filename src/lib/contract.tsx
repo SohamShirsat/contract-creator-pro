@@ -17,6 +17,8 @@ export interface SeasonInterval {
   id: string;
   from: string;
   to: string;
+  daysSelection: "All days" | "Exclude weekends" | "Only weekends" | "Manual";
+  selectedDays: string[];
 }
 
 export interface Season {
@@ -43,10 +45,7 @@ export interface PriceCell {
   cnb1?: string;
   cweb2?: string;
   cnb2?: string;
-  p1?: string;
-  p2?: string;
-  p3?: string;
-  p4?: string;
+  [key: string]: string | boolean | undefined;
 }
 
 export interface Addon {
@@ -156,7 +155,7 @@ export interface ContractState {
   activeSeasonId: string;
   rooms: Room[];
   pricing: Record<string, Record<string, Partial<Record<MealPlan, PriceCell>>>>;
-  barType: "Flat" | "Room type based";
+  barType: "Flat" | "Room type based" | "Not allowed";
   barFlat: string;
   barRoomDiscounts: Record<string, string>;
   // step3
@@ -196,101 +195,133 @@ export interface ContractState {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const initial: ContractState = {
-  contractName: "Summit Hotels – Season 2025–26",
-  hotelName: "The Grand Summit",
-  hotelProperties: ["The Grand Summit"],
+  contractName: "",
+  hotelName: "",
+  hotelProperties: [],
   currency: "INR",
   pricingBasis: "PerRoom",
-  mealPlans: ["EP", "CP", "MAP"],
+  mealPlans: ["EP"],
   childRangeFrom: 5,
   childRangeTo: 13,
-  childTiers: [
-    { id: uid(), ageFrom: 5, ageTo: 8, occupancy: "Sharing with adults", bedding: "No Bed", pricingType: "% Adult rate", value: "50" },
-    { id: uid(), ageFrom: 9, ageTo: 13, occupancy: "Own room", bedding: "With Bed", pricingType: "% Adult rate", value: "75" },
-  ],
+  childTiers: [],
   ratesType: "Net",
-  thresholdRooms: "10",
+  thresholdRooms: "",
   thresholdPeriod: "Month",
-  thresholdCommission: "5",
-  seasons: [
-    { id: "s1", name: "Peak Season", type: "Peak", dateIntervals: [{ id: uid(), from: "2025-12-01", to: "2026-02-28" }] },
-    { id: "s2", name: "Low Season", type: "Low", dateIntervals: [{ id: uid(), from: "2026-03-01", to: "2026-11-30" }] },
-  ],
-  activeSeasonId: "s1",
-  rooms: [
-    { id: "r1", name: "Standard Room", maxAdult: 2, maxChild: 2 },
-    { id: "r2", name: "Suite Room", maxAdult: 4, maxChild: 4 },
-  ],
-  pricing: {
-    s1: {
-      r1: { EP: { base: "2000" }, CP: { addonPrice: "200", enabled: true }, MAP: { addonPrice: "400", enabled: true } },
-      r2: { EP: { base: "10000" }, CP: { addonPrice: "1200", enabled: true }, MAP: { addonPrice: "2000", enabled: true } },
-    },
-    s2: {},
-  },
+  thresholdCommission: "",
+  seasons: [],
+  activeSeasonId: "",
+  rooms: [],
+  pricing: {},
   barType: "Flat",
-  barFlat: "10",
+  barFlat: "",
   barRoomDiscounts: {},
-  addons: [
-    { id: uid(), name: "Christmas Dinner", validOn: "Date range", dateFrom: "2025-12-25", dateTo: "2025-12-25", pricingBasis: "Per Person", adultPrice: "3000", childPrice: "3000", sameAsAdult: true, applicableOn: "All rooms", mandatory: true },
-    { id: uid(), name: "New Year Eve Dinner", validOn: "Date range", dateFrom: "2025-12-31", dateTo: "2025-12-31", pricingBasis: "Per Person", adultPrice: "3500", childPrice: "3000", sameAsAdult: false, applicableOn: "All rooms", mandatory: true },
-    { id: uid(), name: "Honeymoon Package", validOn: "All dates", pricingBasis: "Per Room", roomPrice: "4500", applicableOn: "Suite Room", mandatory: false, additionalInfo: "Candle light dinner, Honeymoon cake, Flower Bed, Fruit basket, Badam Milk" },
-    { id: uid(), name: "Breakfast", validOn: "All dates", pricingBasis: "Per Person", adultPrice: "500", childPrice: "300", sameAsAdult: false, applicableOn: "All rooms", mandatory: false, additionalInfo: "For child below the age of 12 years." },
-  ],
+  addons: [],
   noShowPenalty: "100",
-  cancelBefore: [
-    { id: uid(), condition: "Before Check-in", type: "Days range", from: "30", to: "999", penalty: "0", penaltyUnit: "%", processingFees: "" },
-    { id: uid(), condition: "Partial cancellation", type: "Days range", from: "15", to: "30", penalty: "25", penaltyUnit: "%", processingFees: "5" },
-  ],
-  cancelAfter: [
-    { id: uid(), condition: "Early departure", type: "Fixed charges", from: "", to: "", penalty: "50", penaltyUnit: "%", processingFees: "10" },
-    { id: uid(), condition: "Partial cancellation", type: "Fixed charges", from: "", to: "", penalty: "100", penaltyUnit: "%", processingFees: "5" },
-  ],
+  cancelBefore: [],
+  cancelAfter: [],
   modificationCharges: "Not applicable",
-  modificationRules: [
-    { id: uid(), chargeType: "Date change", appliesWhen: "Within 15 days", value: "1000", additional: "0", unit: "₹" },
-  ],
-  paymentPolicy: "Pay at month end",
-  installments: [
-    { id: uid(), amount: "50", when: "Before check-in", days: "30" },
-    { id: uid(), amount: "50", when: "Before check-in", days: "7" },
-  ],
+  modificationRules: [],
+  paymentPolicy: "Direct payment" as any,
+  installments: [],
   paymentDetails: false,
   paymentDetailsContent: "",
   blackoutAll: false,
-  blackouts: [
-    { id: uid(), roomType: "Standard Room", from: "2026-02-01", to: "2026-02-01", reason: "Festival" },
-    { id: uid(), roomType: "Standard Room", from: "2026-02-15", to: "2026-02-25", reason: "Yearly maintenance" },
-  ],
+  blackouts: [],
   stopSale: [],
-  minLOS: [
-    { id: uid(), restrictionType: "Minimum stay", appliesToFrom: "2025-12-01", appliesToTo: "2026-02-28", minNights: "3", roomType: "All rooms" },
-  ],
+  minLOS: [],
   focPolicy: "Not applicable",
-  focTiers: [{ id: uid(), from: "10", to: "15", roomType: "Standard Room", mealPlan: "EP" }],
+  focTiers: [],
   earlyBird: "Not applicable",
-  earlyBirdRules: [{ id: uid(), days: "60", daysTo: "50", discount: "10", unit: "%", roomType: "All rooms" }],
+  earlyBirdRules: [],
   checkInRestrictions: "Not applicable",
-  checkInRules: [{ id: uid(), dateFrom: "", dateTo: "", roomType: "All rooms", reason: "" }],
+  checkInRules: [],
   inventoryMode: "Allotment",
-  inventory: [
-    { roomId: "r1", pms: "20", allocated: "10", release: "30" },
-    { roomId: "r2", pms: "10", allocated: "5", release: "30" },
-  ],
-  holding: [
-    { id: uid(), policyType: "Release period", value: "30", unit: "Days", trigger: "Arrival date" },
-    { id: uid(), policyType: "Payment deadline", value: "48", unit: "Hours", trigger: "After booking confirmation" },
-  ],
+  inventory: [],
+  holding: [],
   policiesAdditionalInfo: "",
-  taxes: [
-    { id: uid(), name: "GST", type: "Tax", appliesOn: "Room rate", ruleType: "Percentage", minValue: "0", maxValue: "7500", taxValue: "12", unit: "%" },
-    { id: uid(), name: "Tourism development levy", type: "Levy", appliesOn: "Total bill", ruleType: "Flat", minValue: "", maxValue: "", taxValue: "100", unit: "₹" },
-    { id: uid(), name: "Late checkout fees", type: "Fee", appliesOn: "Per hour", ruleType: "Flat", minValue: "", maxValue: "", taxValue: "500", unit: "₹" },
-  ],
-  additionalInfo: "All rates are net non-commissionable unless stated. Hotel reserves the right to adjust pricing with 30 days written notice. Child policy applies to children aged 5–13 years.",
-  validFrom: "2025-12-01",
-  validTo: "2026-11-30",
+  taxes: [],
+  additionalInfo: "",
+  validFrom: "",
+  validTo: "",
 };
+
+const DUMMY_SETS: ContractState[] = [
+  {
+    ...initial,
+    contractName: "Summit Hotels – Season 2025–26",
+    hotelName: "The Grand Summit",
+    hotelProperties: ["The Grand Summit"],
+    currency: "INR",
+    pricingBasis: "PerRoom",
+    mealPlans: ["EP", "CP", "MAP"],
+    childTiers: [
+      { id: uid(), ageFrom: 5, ageTo: 8, occupancy: "Sharing with adults", bedding: "No Bed", pricingType: "% Adult rate", value: "50" },
+      { id: uid(), ageFrom: 9, ageTo: 13, occupancy: "Own room", bedding: "With Bed", pricingType: "% Adult rate", value: "75" },
+    ],
+    seasons: [
+      { id: "s1", name: "Peak Season", type: "Peak", dateIntervals: [{ id: uid(), from: "2025-12-01", to: "2026-02-28", daysSelection: "All days", selectedDays: [] }] },
+      { id: "s2", name: "Low Season", type: "Low", dateIntervals: [{ id: uid(), from: "2026-03-01", to: "2026-11-30", daysSelection: "All days", selectedDays: [] }] },
+    ],
+    activeSeasonId: "s1",
+    rooms: [
+      { id: "r1", name: "Standard Room", maxAdult: 2, maxChild: 2 },
+      { id: "r2", name: "Suite Room", maxAdult: 4, maxChild: 4 },
+    ],
+    pricing: {
+      s1: {
+        r1: { EP: { base: "2000" }, CP: { addonPrice: "200", enabled: true }, MAP: { addonPrice: "400", enabled: true } },
+        r2: { EP: { base: "10000" }, CP: { addonPrice: "1200", enabled: true }, MAP: { addonPrice: "2000", enabled: true } },
+      },
+      s2: {
+        r1: { EP: { base: "1500" }, CP: { addonPrice: "150", enabled: true }, MAP: { addonPrice: "300", enabled: true } },
+        r2: { EP: { base: "8000" }, CP: { addonPrice: "1000", enabled: true }, MAP: { addonPrice: "1500", enabled: true } },
+      },
+    },
+    addons: [
+      { id: uid(), name: "Christmas Dinner", validOn: "Date range", dateFrom: "2025-12-25", dateTo: "2025-12-25", pricingBasis: "Per Person", adultPrice: "3000", childPrice: "3000", sameAsAdult: true, applicableOn: "All rooms", mandatory: true },
+    ],
+    cancelBefore: [{ id: uid(), condition: "Before Check-in", type: "Days range", from: "30", to: "999", penalty: "0", penaltyUnit: "%", processingFees: "" }],
+    paymentPolicy: "Pay at month end",
+    taxes: [{ id: uid(), name: "GST", type: "Tax", appliesOn: "Room rate", ruleType: "Percentage", minValue: "0", maxValue: "7500", taxValue: "12", unit: "%" }],
+  },
+  {
+    ...initial,
+    contractName: "Azure Bay Resort – Luxury 2026",
+    hotelName: "Azure Bay Resort",
+    hotelProperties: ["Azure Bay Resort"],
+    currency: "USD",
+    pricingBasis: "PerPersonSharing",
+    mealPlans: ["EP", "CP", "MAP", "AP"],
+    childTiers: [{ id: uid(), ageFrom: 3, ageTo: 12, occupancy: "Sharing with adults", bedding: "With Bed", pricingType: "Fixed", value: "150" }],
+    seasons: [{ id: "s1", name: "Summer Retreat", type: "Peak", dateIntervals: [{ id: uid(), from: "2026-06-01", to: "2026-08-31", daysSelection: "All days", selectedDays: [] }] }],
+    activeSeasonId: "s1",
+    rooms: [
+      { id: "r1", name: "Ocean View Villa", maxAdult: 2, maxChild: 1 },
+      { id: "r2", name: "Presidential Beachfront", maxAdult: 6, maxChild: 4 },
+    ],
+    pricing: {
+      s1: {
+        r1: { EP: { base: "450" }, CP: { addonPrice: "40", enabled: true }, MAP: { addonPrice: "90", enabled: true }, AP: { addonPrice: "140", enabled: true } },
+        r2: { EP: { base: "2500" }, CP: { addonPrice: "200", enabled: true }, MAP: { addonPrice: "450", enabled: true }, AP: { addonPrice: "700", enabled: true } },
+      },
+    },
+    paymentPolicy: "Pay full amount in advance",
+  },
+  {
+    ...initial,
+    contractName: "Urban Elite – Business Suites 2026",
+    hotelName: "Urban Elite Suites",
+    hotelProperties: ["Urban Elite Suites"],
+    currency: "AED",
+    pricingBasis: "PerRoom",
+    mealPlans: ["EP", "CP"],
+    seasons: [{ id: "s1", name: "Business Year", type: "Peak", dateIntervals: [{ id: uid(), from: "2026-01-01", to: "2026-12-31", daysSelection: "Exclude weekends", selectedDays: [] }] }],
+    activeSeasonId: "s1",
+    rooms: [{ id: "r1", name: "Executive Suite", maxAdult: 2, maxChild: 0 }],
+    pricing: { s1: { r1: { EP: { base: "800" }, CP: { addonPrice: "100", enabled: true } } } },
+    paymentPolicy: "Pay full amount at check-out",
+  }
+];
 
 interface Ctx {
   state: ContractState;
@@ -304,9 +335,11 @@ interface Ctx {
 const ContractCtx = createContext<Ctx | null>(null);
 
 export function ContractProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ContractState>(initial);
+  const [state, setState] = useState<ContractState>(DUMMY_SETS[0]);
   const [step, setStep] = useState(1);
-  const fillDummy = () => setState(initial);
+  const fillDummy = () => {
+    setState(DUMMY_SETS[0]);
+  };
   return (
     <ContractCtx.Provider value={{ state, setState, step, setStep, uid, fillDummy }}>
       {children}

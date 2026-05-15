@@ -5,6 +5,24 @@
       "step": 2,
       "text": "Note: We can add Floor pricing in BAR (Best Available Rates).",
       "createdAt": "2026-05-14T07:44:29.658Z"
+    },
+    {
+      "id": "gu6azzc2",
+      "step": 1,
+      "text": "We can add Supported room types same like Supported meal plans.",
+      "createdAt": "2026-05-14T12:23:42.301Z"
+    },
+    {
+      "id": "gjgy6v9p",
+      "step": 2,
+      "text": "BAR pricing will be applicable on the room pricing or room+meal pricing? \nShould we give an option to fill each AWEB, CNB, CWEB pricing when BAR price applicable?",
+      "createdAt": "2026-05-14T12:24:45.735Z"
+    },
+    {
+      "id": "elya6ol9",
+      "step": 3,
+      "text": "Should we give multiple date range interval option for each add-on?",
+      "createdAt": "2026-05-14T12:25:20.368Z"
     }
   ]
 }

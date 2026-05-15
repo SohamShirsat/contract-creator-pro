@@ -129,18 +129,25 @@ export function Step7Preview() {
             <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 8 }}>
               {s.dateIntervals.map((i) => `${i.from} → ${i.to}`).join(" | ")}
             </div>
-            <table className="cc-table cc-table-compact">
-              <thead>
-                <tr>
-                  <th>Room & Meal</th><th>Base</th><th>AWEB</th><th>1P</th><th>2P</th><th>3P</th><th>4P</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.rooms.map((r) => (
-                  <PriceRows key={r.id} seasonId={s.id} roomId={r.id} roomName={r.name} />
-                ))}
-              </tbody>
-            </table>
+            {(() => {
+              const maxBase = Math.max(...state.rooms.map((r) => r.maxAdult), 2);
+              const occCols = Array.from({ length: maxBase - 1 }, (_, i) => `p${i + 1}`);
+              return (
+                <table className="cc-table cc-table-compact">
+                  <thead>
+                    <tr>
+                      <th>Room & Meal</th><th>Base</th><th>AWEB</th>
+                      {occCols.map((c) => <th key={c}>{c.toUpperCase()}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.rooms.map((r) => (
+                      <PriceRows key={r.id} seasonId={s.id} roomId={r.id} roomName={r.name} occCols={occCols} />
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
           </div>
         ))}
       </Section>
@@ -422,13 +429,13 @@ export function Step7Preview() {
   );
 }
 
-function PriceRows({ seasonId, roomId, roomName }: { seasonId: string; roomId: string; roomName: string }) {
+function PriceRows({ seasonId, roomId, roomName, occCols }: { seasonId: string; roomId: string; roomName: string; occCols: string[] }) {
   const { state } = useContract();
   const cells = state.pricing[seasonId]?.[roomId] || {};
   return (
     <>
       <tr style={{ background: "var(--color-muted)" }}>
-        <td colSpan={7} style={{ height: 40, fontWeight: 600 }}>{roomName}</td>
+        <td colSpan={3 + occCols.length} style={{ height: 40, fontWeight: 600 }}>{roomName}</td>
       </tr>
       {state.mealPlans.map((m) => {
         const c = cells[m] || {};
@@ -454,10 +461,14 @@ function PriceRows({ seasonId, roomId, roomName }: { seasonId: string; roomId: s
               }
             </td>
             <td>{c.aweb ? `₹${c.aweb}` : "—"}</td>
-            <td>{c.p1 ? `₹${c.p1}` : "—"}</td>
-            <td>{c.p2 ? `₹${c.p2}` : "—"}</td>
-            <td>{c.p3 ? `₹${c.p3}` : "—"}</td>
-            <td>{c.p4 ? `₹${c.p4}` : "—"}</td>
+            {occCols.map((col) => {
+              const room = state.rooms.find((r) => r.id === roomId);
+              const paxNum = parseInt(col.slice(1));
+              const isApplicable = room ? paxNum < room.maxAdult : false;
+              return (
+                <td key={col}>{isApplicable && c[col] ? `₹${c[col]}` : "—"}</td>
+              );
+            })}
           </tr>
         );
       })}

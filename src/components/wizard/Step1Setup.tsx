@@ -119,7 +119,7 @@ export function Step1Setup() {
         <h3 className="cc-section-title">Basic contract settings</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
-            <label className="cc-label">Hotel / property name</label>
+            <label className="cc-label">Select Hotel / property</label>
             <HotelMultiSelect
               selected={state.hotelProperties}
               onChange={(v) => setState({ ...state, hotelProperties: v, hotelName: v[0] || "" })}
@@ -171,8 +171,13 @@ export function Step1Setup() {
 
       {/* Child */}
       <div className="cc-card">
-        <h3 className="cc-section-title">Child</h3>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
+          <h3 className="cc-section-title" style={{ marginBottom: 0 }}>Child</h3>
+          <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", fontWeight: 400 }}>
+            ⓘ This rate will be overridden by room/date specific CWeB and CNB.
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <span style={{ fontSize: 13 }}>Enter child range</span>
           <input
             className="cc-input"
@@ -190,20 +195,17 @@ export function Step1Setup() {
             onChange={(e) => setState({ ...state, childRangeTo: +e.target.value })}
           />
           <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>years</span>
-        </div>
-
-        {/* Complementary info */}
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 12, padding: "8px 12px", background: "oklch(0.97 0.01 220)", borderRadius: 8, border: "1px solid oklch(0.85 0.04 220)" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.1 220)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-            <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <span style={{ fontSize: 12, color: "oklch(0.4 0.08 220)", lineHeight: 1.5 }}>
+          <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginLeft: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+            </svg>
             Below {state.childRangeFrom}y child will be considered as complimentary.
           </span>
         </div>
-{/* Info messages */}
-        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-          <InfoMsg text="This rate will be overridden by room/date specific CWeB and CNB." />
+
+
+        {/* Info messages */}
+        <div style={{ marginTop: 12, marginBottom: 20, display: "flex", flexDirection: "column", gap: 6 }}>
           <InfoMsg text={`Decimal ages are treated as the next whole number. Example: 5 years 1 Month will be treated as 6 years.`} />
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -310,9 +312,6 @@ export function Step1Setup() {
             % commission of the total booking amount.
           </div>
         )}
-        <p style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginTop: 12 }}>
-          Note: We can add Floor pricing in BAR (Best Available Rates).
-        </p>
       </div>
     </div>
   );

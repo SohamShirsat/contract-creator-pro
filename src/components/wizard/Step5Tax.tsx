@@ -3,17 +3,23 @@ import { useContract, type Tax } from "@/lib/contract";
 import { Modal } from "./Modal";
 
 export function Step5Tax() {
-  const { state, setState, uid } = useContract();
+  const { state, setState, uid, fillDummy } = useContract();
   const [open, setOpen] = useState(false);
   const blank: Tax = { id: "", name: "", type: "Tax", appliesOn: "Room rate", ruleType: "Percentage", minValue: "", maxValue: "", taxValue: "", unit: "%" };
   const [draft, setDraft] = useState<Tax>(blank);
 
   return (
-    <div className="cc-card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 className="cc-section-title" style={{ marginBottom: 0 }}>Surcharges, Fees & Tax</h3>
-        <button className="cc-btn cc-btn-primary" onClick={() => { setDraft(blank); setOpen(true); }}>Add</button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <h2 className="cc-page-title">Taxes</h2>
+        <button className="cc-btn cc-btn-outline" onClick={fillDummy} style={{ height: 36, fontSize: 13 }}>Fill dummy data</button>
       </div>
+
+      <div className="cc-card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 className="cc-section-title" style={{ marginBottom: 0 }}>Surcharges, Fees & Tax</h3>
+          <button className="cc-btn cc-btn-primary" onClick={() => { setDraft(blank); setOpen(true); }}>Add</button>
+        </div>
 
       <table className="cc-table cc-table-compact">
         <thead><tr><th>Name</th><th>Type</th><th>Applies on</th><th>Rule type</th><th>Min</th><th>Max</th><th>Tax value</th><th></th></tr></thead>
@@ -31,6 +37,7 @@ export function Step5Tax() {
       <p style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginTop: 12 }}>
         User can set fees and tax from this screen by clicking on the "Add". Then Add popup will open as popover.
       </p>
+    </div>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Add" width={720}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>

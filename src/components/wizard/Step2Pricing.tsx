@@ -4,9 +4,10 @@ import { Modal } from "./Modal";
 
 
 export function Step2Pricing() {
-  const { state, setState, uid } = useContract();
+  const { state, setState, uid, fillDummy } = useContract();
   const [seasonModal, setSeasonModal] = useState<{ open: boolean; editing?: Season }>({ open: false });
   const [draftSeason, setDraftSeason] = useState<Season>({ id: "", name: "", type: "Peak", dateIntervals: [] });
+  const [bulkTargetSeason, setBulkTargetSeason] = useState("");
 
   const activeSeason = state.seasons.find((s) => s.id === state.activeSeasonId)!;
   const childTiers = state.childTiers;
@@ -49,7 +50,7 @@ export function Step2Pricing() {
   };
 
   const openAddSeason = () => {
-    setDraftSeason({ id: "", name: "", type: "Peak", dateIntervals: [{ id: uid(), from: "", to: "" }] });
+    setDraftSeason({ id: "", name: "", type: "Peak", dateIntervals: [{ id: uid(), from: "", to: "", daysSelection: "All days", selectedDays: [] }] });
     setSeasonModal({ open: true });
   };
   const openEditSeason = (s: Season) => {
@@ -67,11 +68,13 @@ export function Step2Pricing() {
   };
 
   const addInterval = () =>
-    setDraftSeason((d) => ({ ...d, dateIntervals: [...d.dateIntervals, { id: uid(), from: "", to: "" }] }));
+    setDraftSeason((d) => ({ ...d, dateIntervals: [...d.dateIntervals, { id: uid(), from: "", to: "", daysSelection: "All days", selectedDays: [] }] }));
   const removeInterval = (id: string) =>
     setDraftSeason((d) => ({ ...d, dateIntervals: d.dateIntervals.filter((i) => i.id !== id) }));
   const updateInterval = (id: string, patch: Partial<SeasonInterval>) =>
     setDraftSeason((d) => ({ ...d, dateIntervals: d.dateIntervals.map((i) => (i.id === id ? { ...i, ...patch } : i)) }));
+
+  const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   const formatSeasonDates = (s: Season) => {
     if (!s.dateIntervals.length) return "No dates";
@@ -81,8 +84,46 @@ export function Step2Pricing() {
     return `${first.from || "—"} → ${first.to || "—"}${extra}`;
   };
 
+  const overlaps = (() => {
+    const list: { s1: string; s2: string; range: string }[] = [];
+    const allIntervals: { seasonName: string; from: string; to: string }[] = [];
+
+    state.seasons.forEach((s) => {
+      s.dateIntervals.forEach((i) => {
+        if (i.from && i.to) {
+          allIntervals.push({ seasonName: s.name, from: i.from, to: i.to });
+        }
+      });
+    });
+
+    for (let i = 0; i < allIntervals.length; i++) {
+      for (let j = i + 1; j < allIntervals.length; j++) {
+        const a = allIntervals[i];
+        const b = allIntervals[j];
+        if (a.seasonName === b.seasonName) continue;
+
+        const startA = new Date(a.from);
+        const endA = new Date(a.to);
+        const startB = new Date(b.from);
+        const endB = new Date(b.to);
+
+        if (startA <= endB && startB <= endA) {
+          const oStart = startA > startB ? a.from : b.from;
+          const oEnd = endA < endB ? a.to : b.to;
+          list.push({ s1: a.seasonName, s2: b.seasonName, range: `${oStart} to ${oEnd}` });
+        }
+      }
+    }
+    return list;
+  })();
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <h2 className="cc-page-title">Pricing</h2>
+        <button className="cc-btn cc-btn-outline" onClick={fillDummy} style={{ height: 36, fontSize: 13 }}>Fill dummy data</button>
+      </div>
+
       {/* Season */}
       <div className="cc-card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -144,7 +185,14 @@ export function Step2Pricing() {
                         ...s,
                         seasons: s.seasons.map((sea) =>
                           sea.id === activeSeason.id
-                            ? { ...sea, dateIntervals: sea.dateIntervals.map((i) => i.id === interval.id ? { ...i, from: val } : i) }
+                            ? { 
+                                ...sea, 
+                                dateIntervals: sea.dateIntervals.map((i) => 
+                                  i.id === interval.id 
+                                    ? { ...i, from: val, to: (i.to && i.to < val) ? "" : i.to } 
+                                    : i
+                                ) 
+                              }
                             : sea
                         ),
                       }));
@@ -156,6 +204,7 @@ export function Step2Pricing() {
                     className="cc-input"
                     style={{ width: 180 }}
                     value={interval.to}
+                    min={interval.from}
                     onChange={(e) => {
                       const val = e.target.value;
                       setState((s) => ({
@@ -168,6 +217,54 @@ export function Step2Pricing() {
                       }));
                     }}
                   />
+                  <select 
+                    className="cc-input" 
+                    style={{ width: 150 }} 
+                    value={interval.daysSelection}
+                    onChange={(e) => {
+                      const val = e.target.value as SeasonInterval["daysSelection"];
+                      setState((s) => ({
+                        ...s,
+                        seasons: s.seasons.map((sea) =>
+                          sea.id === activeSeason.id
+                            ? { ...sea, dateIntervals: sea.dateIntervals.map((i) => i.id === interval.id ? { ...i, daysSelection: val } : i) }
+                            : sea
+                        ),
+                      }));
+                    }}
+                  >
+                    <option>All days</option>
+                    <option>Exclude weekends</option>
+                    <option>Only weekends</option>
+                    <option>Manual</option>
+                  </select>
+                  {interval.daysSelection === "Manual" && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {WEEKDAYS.map((day) => (
+                        <label key={day} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer" }}>
+                          <input 
+                            type="checkbox" 
+                            checked={(interval.selectedDays || []).includes(day)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const next = checked 
+                                ? [...(interval.selectedDays || []), day]
+                                : (interval.selectedDays || []).filter(d => d !== day);
+                              setState((s) => ({
+                                ...s,
+                                seasons: s.seasons.map((sea) =>
+                                  sea.id === activeSeason.id
+                                    ? { ...sea, dateIntervals: sea.dateIntervals.map((i) => i.id === interval.id ? { ...i, selectedDays: next } : i) }
+                                    : sea
+                                ),
+                              }));
+                            }}
+                          />
+                          {day}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                   {activeSeason.dateIntervals.length > 1 && (
                     <button className="cc-icon-btn" onClick={() => {
                       setState((s) => ({
@@ -201,20 +298,101 @@ export function Step2Pricing() {
             </button>
           </div>
         )}
+
+        {/* Overlap Warning */}
+        {overlaps.length > 0 && (
+          <div style={{
+            marginTop: 20,
+            padding: "16px",
+            background: "#fff5f5",
+            border: "1px solid #feb2b2",
+            borderRadius: 10,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 16,
+            color: "#c53030",
+            boxShadow: "0 2px 10px rgba(197, 48, 48, 0.05)"
+          }}>
+            <div style={{ 
+              width: 32, height: 32, borderRadius: 99, background: "#fed7d7", 
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              fontSize: 18
+            }}>
+              ⚠️
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Overlapping dates detected!</div>
+              <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 12 }}>
+                The following seasons have conflicting date ranges which may lead to incorrect pricing:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, display: "flex", flexDirection: "column", gap: 6 }}>
+                {overlaps.map((o, idx) => (
+                  <li key={idx}>
+                    <strong>{o.s1}</strong> and <strong>{o.s2}</strong> overlap from <span style={{ fontWeight: 600 }}>{o.range}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button 
+               className="cc-btn cc-btn-sm" 
+               style={{ background: "#c53030", color: "white", border: "none", alignSelf: "center", padding: "8px 16px" }}
+               onClick={() => {
+                 const firstInput = document.querySelector('input[type="date"]');
+                 if (firstInput) (firstInput as HTMLElement).focus();
+               }}
+            >
+              Fix overlap
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Pricing table */}
       <div className="cc-card">
-        <h3 className="cc-section-title">
-          Room pricing for {activeSeason.name} (per {state.pricingBasis === "PerRoom" ? "room" : "person"} / per night)
-        </h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+          <h3 className="cc-section-title" style={{ marginBottom: 0 }}>
+            Room pricing for {activeSeason.name} (per {state.pricingBasis === "PerRoom" ? "room" : "person"} / per night)
+          </h3>
+          <span style={{ fontSize: 13, color: "var(--color-muted-foreground)" }}>All prices are exclusive of taxes.</span>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <span style={{ fontSize: 13 }}>Apply bulk price to:</span>
-          <select className="cc-input" style={{ width: 200 }}>
-            {state.seasons.map((s) => <option key={s.id}>{s.name}</option>)}
+          <select 
+            className="cc-input" 
+            style={{ width: 200 }}
+            value={bulkTargetSeason}
+            onChange={(e) => setBulkTargetSeason(e.target.value)}
+          >
+            <option value="">Select target season</option>
+            {state.seasons.filter(s => s.id !== state.activeSeasonId).map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
           </select>
-          <button className="cc-btn cc-btn-outline">Apply</button>
+          <button 
+            className="cc-btn cc-btn-outline"
+            onClick={() => {
+              if (!bulkTargetSeason) return;
+              setState((s) => {
+                const next = { ...s.pricing };
+                const sourcePricing = next[s.activeSeasonId] || {};
+                next[bulkTargetSeason] = JSON.parse(JSON.stringify(sourcePricing));
+                return { ...s, pricing: next };
+              });
+              const targetName = state.seasons.find(s => s.id === bulkTargetSeason)?.name;
+              alert(`Pricing copied from ${activeSeason.name} to ${targetName}`);
+            }}
+          >
+            Apply
+          </button>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "6px 12px", background: "oklch(0.97 0.01 220)", borderRadius: 6, border: "1px solid oklch(0.88 0.03 220)", marginLeft: "auto", whiteSpace: "nowrap" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.1 220)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <span style={{ fontSize: 12, color: "oklch(0.4 0.08 220)", fontWeight: 500 }}>
+              If occupancy-specific pricing is not entered for 1P, 2P, 3P or 4P, the base price will be applied by default.
+            </span>
+          </div>
         </div>
 
         {state.pricingBasis === "PerRoom" ? (
@@ -280,14 +458,6 @@ export function Step2Pricing() {
       {/* BAR */}
       <div className="cc-card">
         <h3 className="cc-section-title">BAR (Best Available Rates) discount</h3>
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 16, padding: "8px 12px", background: "oklch(0.97 0.01 220)", borderRadius: 8, border: "1px solid oklch(0.85 0.04 220)" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.1 220)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-            <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <span style={{ fontSize: 12, color: "oklch(0.4 0.08 220)", lineHeight: 1.5 }}>
-            Prices will be updated directly from PMS in real time and below discount will be applicable on rates.
-          </span>
-        </div>
         <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>
           <label className="cc-radio-row">
             <input type="radio" checked={state.barType === "Flat"} onChange={() => setState({ ...state, barType: "Flat" })} />
@@ -297,14 +467,36 @@ export function Step2Pricing() {
             <input type="radio" checked={state.barType === "Room type based"} onChange={() => setState({ ...state, barType: "Room type based" })} />
             Room type based
           </label>
+          <label className="cc-radio-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="radio" checked={state.barType === "Not allowed"} onChange={() => setState({ ...state, barType: "Not allowed" })} />
+            <span>Not allowed</span>
+            {state.barType === "Not allowed" && (
+              <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginLeft: 8, padding: "2px 8px", background: "var(--color-muted)", borderRadius: 6 }}>
+                ⓘ BAR discount is not allowed for this contract.
+              </span>
+            )}
+          </label>
         </div>
 
-        {state.barType === "Flat" ? (
+        {state.barType !== "Not allowed" && (
+          <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 20, padding: "8px 12px", background: "oklch(0.97 0.01 220)", borderRadius: 8, border: "1px solid oklch(0.85 0.04 220)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.1 220)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <span style={{ fontSize: 12, color: "oklch(0.4 0.08 220)", lineHeight: 1.5 }}>
+              Prices will be updated directly from PMS in real time and below discount will be applicable on rates.
+            </span>
+          </div>
+        )}
+
+        {state.barType === "Flat" && (
           <div style={{ maxWidth: 200 }}>
             <label className="cc-label">Discount (%)</label>
             <input className="cc-input" value={state.barFlat} onChange={(e) => setState({ ...state, barFlat: e.target.value })} />
           </div>
-        ) : (
+        )}
+
+        {state.barType === "Room type based" && (
           <table className="cc-table cc-table-compact">
             <thead><tr><th>Room type</th><th>Discount (%)</th></tr></thead>
             <tbody>
@@ -324,10 +516,18 @@ export function Step2Pricing() {
             </tbody>
           </table>
         )}
-        <p style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginTop: 12 }}>
-          Note: We can add Floor pricing in BAR.
-        </p>
       </div>
+
+      {state.barType !== "Not allowed" && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 16px", background: "oklch(0.97 0.01 220)", borderRadius: 10, border: "1px solid oklch(0.85 0.04 220)", marginTop: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.5 0.1 220)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <span style={{ fontSize: 13, color: "oklch(0.4 0.08 220)", fontWeight: 500 }}>
+            The lowest available rate will be applied automatically.
+          </span>
+        </div>
+      )}
 
       {/* Season modal */}
       <Modal
@@ -346,9 +546,58 @@ export function Step2Pricing() {
             {draftSeason.dateIntervals.map((interval, idx) => (
               <div key={interval.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", minWidth: 60 }}>Interval {idx + 1}</span>
-                <input type="date" className="cc-input" style={{ width: 160 }} value={interval.from} onChange={(e) => updateInterval(interval.id, { from: e.target.value })} />
+                <input 
+                  type="date" 
+                  className="cc-input" 
+                  style={{ width: 160 }} 
+                  value={interval.from} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const patch: Partial<SeasonInterval> = { from: val };
+                    if (interval.to && interval.to < val) patch.to = "";
+                    updateInterval(interval.id, patch);
+                  }} 
+                />
                 <span>→</span>
-                <input type="date" className="cc-input" style={{ width: 160 }} value={interval.to} onChange={(e) => updateInterval(interval.id, { to: e.target.value })} />
+                <input 
+                  type="date" 
+                  className="cc-input" 
+                  style={{ width: 160 }} 
+                  value={interval.to} 
+                  min={interval.from}
+                  onChange={(e) => updateInterval(interval.id, { to: e.target.value })} 
+                />
+                <select 
+                  className="cc-input" 
+                  style={{ width: 140 }} 
+                  value={interval.daysSelection}
+                  onChange={(e) => updateInterval(interval.id, { daysSelection: e.target.value as SeasonInterval["daysSelection"] })}
+                >
+                  <option>All days</option>
+                  <option>Exclude weekends</option>
+                  <option>Only weekends</option>
+                  <option>Manual</option>
+                </select>
+                {interval.daysSelection === "Manual" && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxWidth: 200 }}>
+                    {WEEKDAYS.map((day) => (
+                      <label key={day} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer" }}>
+                        <input 
+                          type="checkbox" 
+                          checked={(interval.selectedDays || []).includes(day)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            const next = checked 
+                              ? [...(interval.selectedDays || []), day]
+                              : (interval.selectedDays || []).filter(d => d !== day);
+                            updateInterval(interval.id, { selectedDays: next });
+                          }}
+                        />
+                        {day}
+                      </label>
+                    ))}
+                  </div>
+                )}
                 {draftSeason.dateIntervals.length > 1 && (
                   <button className="cc-icon-btn" onClick={() => removeInterval(interval.id)}>✕</button>
                 )}
@@ -377,6 +626,7 @@ function MealRow({
   baseValue,
   childCols,
   occCols,
+  showAweb,
 }: {
   meal: MealPlan;
   cell: PriceCell;
@@ -385,6 +635,7 @@ function MealRow({
   baseValue?: string;
   childCols: { key: keyof PriceCell; label: string }[];
   occCols: { key: keyof PriceCell; label: string; disabled?: boolean }[];
+  showAweb?: boolean;
 }) {
   const calc = (() => {
     const b = parseFloat(baseValue || "0");
@@ -393,20 +644,20 @@ function MealRow({
   })();
   return (
     <tr>
-      <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", paddingLeft: 16, fontSize: 13, fontWeight: 500, whiteSpace: "nowrap" }}>
+      <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", paddingLeft: 16, fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", borderRight: "1px solid var(--color-border)", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.05)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between" }}>
           {meal}
           {!isBase ? (
             <button
               type="button"
               role="switch"
-              aria-checked={!!cell.enabled}
-              onClick={() => setCell({ enabled: !cell.enabled })}
+              aria-checked={cell.enabled !== false}
+              onClick={() => setCell({ enabled: cell.enabled === false })}
               style={{
                 width: 36,
                 height: 20,
                 borderRadius: 20,
-                background: cell.enabled ? "var(--color-primary)" : "var(--color-border)",
+                background: cell.enabled !== false ? "var(--color-primary)" : "var(--color-border)",
                 position: "relative",
                 border: "none",
                 cursor: "pointer",
@@ -418,7 +669,7 @@ function MealRow({
                 style={{
                   position: "absolute",
                   top: 2,
-                  left: cell.enabled ? 18 : 2,
+                  left: cell.enabled !== false ? 18 : 2,
                   width: 16,
                   height: 16,
                   borderRadius: "50%",
@@ -438,15 +689,37 @@ function MealRow({
           <input className="cc-input" style={{ width: 110 }} value={cell.base || ""} onChange={(e) => setCell({ base: e.target.value })} />
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input className="cc-input" style={{ width: 110 }} disabled={!cell.enabled} value={cell.addonPrice || ""} onChange={(e) => setCell({ addonPrice: e.target.value })} />
-            {cell.enabled && <span style={{ fontSize: 12, color: "var(--color-muted-foreground)" }}>{calc}</span>}
+            <input className="cc-input" style={{ width: 110 }} disabled={cell.enabled === false} value={cell.addonPrice || ""} onChange={(e) => setCell({ addonPrice: e.target.value })} />
+            {cell.enabled !== false && (
+              <div className="cc-tooltip-container">
+                <span style={{ fontSize: 12, color: "var(--color-muted-foreground)", cursor: "help", borderBottom: "1px dashed var(--color-border)" }}>
+                  {calc}
+                </span>
+                <div className="cc-tooltip">
+                  <div style={{ fontWeight: 600, marginBottom: 4, borderBottom: "1px solid rgba(255,255,255,0.2)", paddingBottom: 4 }}>Price Breakdown</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 20 }}>
+                    <span>Base Price (EP):</span>
+                    <span>₹{baseValue || "0"}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 20 }}>
+                    <span>{meal} Addon:</span>
+                    <span>+ ₹{cell.addonPrice || "0"}</span>
+                  </div>
+                  <div style={{ marginTop: 8, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.2)", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
+                    <span>Total:</span>
+                    <span>₹{parseFloat(baseValue || "0") + parseFloat(cell.addonPrice || "0")}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </td>
-      {/* AWEB column */}
-      <td>
-        <input className="cc-input" style={{ width: 90 }} value={cell.aweb || ""} onChange={(e) => setCell({ aweb: e.target.value })} />
-      </td>
+      {showAweb && (
+        <td>
+          <input className="cc-input" style={{ width: 90 }} value={cell.aweb || ""} onChange={(e) => setCell({ aweb: e.target.value })} />
+        </td>
+      )}
       {childCols.map((c) => (
         <td key={c.key}>
           <input
@@ -459,13 +732,14 @@ function MealRow({
       ))}
       {occCols.map((c) => (
         <td key={c.key}>
-          <input
-            className="cc-input"
-            style={{ width: 80, opacity: c.disabled ? 0.4 : 1 }}
-            disabled={c.disabled}
-            value={(cell[c.key] as string) || ""}
-            onChange={(e) => setCell({ [c.key]: e.target.value } as Partial<PriceCell>)}
-          />
+          {!c.disabled && (
+            <input
+              className="cc-input"
+              style={{ width: 80 }}
+              value={(cell[c.key] as string) || ""}
+              onChange={(e) => setCell({ [c.key]: e.target.value } as Partial<PriceCell>)}
+            />
+          )}
         </td>
       ))}
     </tr>
@@ -490,12 +764,11 @@ function PerRoomTable({
     tier2 && { key: "cnb2" as const, label: `CNB(${tier2.ageFrom}y–${tier2.ageTo}y)` },
   ].filter(Boolean) as { key: keyof PriceCell; label: string }[];
 
-  const allOccCols: { key: keyof PriceCell; label: string }[] = [
-    { key: "p1", label: "1P" },
-    { key: "p2", label: "2P" },
-    { key: "p3", label: "3P" },
-    { key: "p4", label: "4P" },
-  ];
+  const maxBase = Math.max(...rooms.map((r) => r.maxAdult), 2);
+  const allOccCols = Array.from({ length: maxBase - 1 }, (_, i) => ({
+    key: `p${i + 1}`,
+    label: `${i + 1}P`,
+  }));
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -512,7 +785,14 @@ function PerRoomTable({
       <table className="cc-table" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th style={{ position: "sticky", left: 0, zIndex: 2, background: "var(--color-muted)", whiteSpace: "nowrap" }}>Room type &amp; Meal</th>
+            <th style={{ 
+              position: "sticky", 
+              left: 0, 
+              zIndex: 2, 
+              background: "var(--color-muted)", 
+              whiteSpace: "nowrap",
+              borderRight: "1px solid var(--color-border)"
+            }}>Room type &amp; Meal</th>
             <th>Base</th>
             <th>AWEB</th>
             {childCols.map((c) => <th key={c.key}>{c.label}</th>)}
@@ -543,6 +823,7 @@ function PerRoomTable({
                     baseValue={getCell(r.id, "EP").base}
                     childCols={childCols}
                     occCols={occCols}
+                    showAweb={true}
                   />
                 ))}
               </FragmentRoom>
@@ -563,11 +844,11 @@ function PerPersonTable({
   setCell: (rid: string, m: MealPlan, p: Partial<PriceCell>) => void;
   removeRoom: (rid: string) => void;
 }) {
-  const occCols = [
-    { key: "p1" as const, label: "Single occupancy (1P)" },
-    { key: "p2" as const, label: "Per person sharing (2P)" },
-    { key: "p3" as const, label: "Third Adult (3P)" },
-  ];
+  const maxBase = Math.max(...rooms.map((r) => r.maxAdult), 2);
+  const occCols = Array.from({ length: Math.min(maxBase - 1, 3) }, (_, i) => {
+    const labels = ["Single occupancy (1P)", "Per person sharing (2P)", "Third Adult (3P)"];
+    return { key: `p${i + 1}`, label: labels[i] || `${i + 1}P` };
+  });
   const childCols = [
     { key: "cweb1" as const, label: "CWEB" },
     { key: "cnb1" as const, label: "CNB" },
@@ -587,7 +868,14 @@ function PerPersonTable({
       <table className="cc-table" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th style={{ position: "sticky", left: 0, zIndex: 2, background: "var(--color-muted)", whiteSpace: "nowrap" }}>Room type &amp; Meal</th>
+            <th style={{ 
+              position: "sticky", 
+              left: 0, 
+              zIndex: 2, 
+              background: "var(--color-muted)", 
+              whiteSpace: "nowrap",
+              borderRight: "1px solid var(--color-border)"
+            }}>Room type &amp; Meal</th>
             <th>Base</th>
             {occCols.map((c) => <th key={c.key}>{c.label}</th>)}
             {childCols.map((c) => <th key={c.key}>{c.label}</th>)}
@@ -612,6 +900,7 @@ function PerPersonTable({
                   baseValue={getCell(r.id, "EP").base}
                   childCols={childCols}
                   occCols={occCols}
+                  showAweb={false}
                 />
               ))}
             </FragmentRoom>

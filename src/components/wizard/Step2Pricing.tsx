@@ -4,7 +4,7 @@ import { Modal } from "./Modal";
 
 
 export function Step2Pricing() {
-  const { state, setState, uid, fillDummy } = useContract();
+  const { state, setState, uid } = useContract();
   const [seasonModal, setSeasonModal] = useState<{ open: boolean; editing?: Season }>({ open: false });
   const [draftSeason, setDraftSeason] = useState<Season>({ id: "", name: "", type: "Peak", dateIntervals: [] });
   const [bulkTargetSeason, setBulkTargetSeason] = useState("");
@@ -119,10 +119,7 @@ export function Step2Pricing() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <h2 className="cc-page-title">Pricing</h2>
-        <button className="cc-btn cc-btn-outline" onClick={fillDummy} style={{ height: 36, fontSize: 13 }}>Fill dummy data</button>
-      </div>
+      {/* Season */}
 
       {/* Season */}
       <div className="cc-card">
@@ -646,7 +643,7 @@ function MealRow({
     <tr>
       <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", paddingLeft: 16, fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", borderRight: "1px solid var(--color-border)", boxShadow: "2px 0 5px -2px rgba(0,0,0,0.05)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between" }}>
-          {meal}
+          {meal === "EP" ? "Base price(EP)" : meal}
           {!isBase ? (
             <button
               type="button"

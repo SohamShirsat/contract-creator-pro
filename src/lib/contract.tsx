@@ -279,10 +279,61 @@ const DUMMY_SETS: ContractState[] = [
     },
     addons: [
       { id: uid(), name: "Christmas Dinner", validOn: "Date range", dateFrom: "2025-12-25", dateTo: "2025-12-25", pricingBasis: "Per Person", adultPrice: "3000", childPrice: "3000", sameAsAdult: true, applicableOn: "All rooms", mandatory: true },
+      { id: uid(), name: "Airport Transfer", validOn: "All dates", pricingBasis: "Per Room", roomPrice: "1500", adultPrice: "0", childPrice: "0", sameAsAdult: false, applicableOn: "All rooms", mandatory: false },
+      { id: uid(), name: "Spa Treatment", validOn: "All dates", pricingBasis: "Per Person Per Night", adultPrice: "2500", childPrice: "1500", sameAsAdult: false, applicableOn: "All rooms", mandatory: false },
+      { id: uid(), name: "Honeymoon Decor", validOn: "All dates", pricingBasis: "Per Room Per Night", roomPrice: "1200", adultPrice: "0", childPrice: "0", sameAsAdult: false, applicableOn: "All rooms", mandatory: false },
     ],
     cancelBefore: [{ id: uid(), condition: "Before Check-in", type: "Days range", from: "30", to: "999", penalty: "0", penaltyUnit: "%", processingFees: "" }],
+    cancelAfter: [
+      { id: uid(), condition: "Early departure", type: "Fixed charges", from: "", to: "", penalty: "100", penaltyUnit: "%", processingFees: "" },
+      { id: uid(), condition: "Partial cancellation", type: "Fixed charges", from: "", to: "", penalty: "50", penaltyUnit: "%", processingFees: "500" },
+    ],
+    modificationCharges: "Applicable",
+    modificationRules: [
+      { id: uid(), chargeType: "Name change", appliesWhen: "Anytime", value: "800", additional: "18", unit: "%" },
+    ],
+    noShowPenalty: "100",
     paymentPolicy: "Pay at month end",
-    taxes: [{ id: uid(), name: "GST", type: "Tax", appliesOn: "Room rate", ruleType: "Percentage", minValue: "0", maxValue: "7500", taxValue: "12", unit: "%" }],
+    paymentDetails: true,
+    paymentDetailsContent: "Account Name: Summit Hotels PVT LTD\nAccount Number: 987654321012\nBank Name: ABC Bank\nIFSC Code: ABC0001234\nBranch: New Delhi Main Branch",
+    blackouts: [
+      { id: uid(), roomType: "All rooms", from: "2026-01-01", to: "2026-01-05", reason: "Annual Maintenance" },
+    ],
+    stopSale: [
+      { id: uid(), roomType: "Suite Room", from: "2026-02-14", to: "2026-02-14", reason: "Fully Booked (Valentine's)" },
+    ],
+    minLOS: [
+      { id: uid(), restrictionType: "Minimum stay", appliesToFrom: "2025-12-24", appliesToTo: "2026-01-02", minNights: "3", roomType: "All rooms" },
+    ],
+    focPolicy: "Applicable",
+    focTiers: [
+      { id: uid(), from: "10", to: "15", roomType: "All rooms", mealPlan: "Any meal plan" },
+    ],
+    earlyBird: "Applicable",
+    earlyBirdRules: [
+      { id: uid(), days: "60", daysTo: "90", discount: "15", unit: "%", roomType: "All rooms" },
+    ],
+    checkInRestrictions: "Applicable",
+    checkInRules: [
+      { id: uid(), dateFrom: "2026-05-01", dateTo: "2026-05-31", roomType: "All rooms", reason: "Special Event - No Check-ins on weekends" },
+    ],
+    inventoryMode: "Allotment",
+    inventory: [
+      { roomId: "r1", pms: "20", allocated: "15", release: "48" },
+      { roomId: "r2", pms: "5", allocated: "5", release: "72" },
+    ],
+    holding: [
+      { id: uid(), policyType: "Release period", value: "72", unit: "Hours", trigger: "Before Check-in" },
+    ],
+    policiesAdditionalInfo: "The refund process will usually take 21 working days from the date of refund requests raised.\nRefunds will be processed through bank transfer only",
+    taxes: [
+      { id: uid(), name: "GST", type: "Tax", appliesOn: "Room rate", ruleType: "Percentage", minValue: "0", maxValue: "7500", taxValue: "12", unit: "%" },
+      { id: uid(), name: "Tourism development levy", type: "Levy", appliesOn: "Per person/night", ruleType: "Flat", minValue: "", maxValue: "", taxValue: "50", unit: "₹" },
+      { id: uid(), name: "Late checkout fees", type: "Fee", appliesOn: "Room rate", ruleType: "Flat", minValue: "", maxValue: "", taxValue: "500", unit: "₹" },
+    ],
+    additionalInfo: "- Welcome drink on arrival\n- Indoor games\n- 24X7 spa available\n- Doctor on call available",
+    validFrom: "2025-01-01",
+    validTo: "2025-12-31",
   },
   {
     ...initial,

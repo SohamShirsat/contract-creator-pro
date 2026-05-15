@@ -16,7 +16,7 @@ function Card({ title, action, children }: { title: string; action?: React.React
 }
 
 export function Step4Policies() {
-  const { state, setState, uid, fillDummy } = useContract();
+  const { state, setState, uid } = useContract();
   const [cancelModal, setCancelModal] = useState<{ open: boolean; type: "before" | "after" }>({ open: false, type: "before" });
   const [minlosModal, setMinlosModal] = useState(false);
   const [draftCancel, setDraftCancel] = useState<CancelRule>({ id: "", condition: "", type: "Days range", from: "", to: "", penalty: "", penaltyUnit: "%", processingFees: "" });
@@ -58,10 +58,7 @@ export function Step4Policies() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <h2 className="cc-page-title">Policies</h2>
-        <button className="cc-btn cc-btn-outline" onClick={fillDummy} style={{ height: 36, fontSize: 13 }}>Fill dummy data</button>
-      </div>
+      {/* No show */}
 
       {/* No show */}
       <Card title="No show policy">
@@ -221,17 +218,29 @@ export function Step4Policies() {
         </div>
         {state.modificationCharges === "Applicable" && (
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            {(state.modificationRules || []).length > 0 && (
+              <div style={{ display: "flex", gap: 12, marginBottom: -4, fontSize: 12, color: "var(--color-muted-foreground)", fontWeight: 600 }}>
+                <span style={{ flex: 1 }}>Charge type</span>
+                <span style={{ flex: 1 }}>Applies when</span>
+                <span style={{ width: 112 }}>Value</span>
+                <span style={{ width: 128 }}>GST</span>
+                <span style={{ width: 32 }}></span>
+              </div>
+            )}
             {(state.modificationRules || []).map((mr) => (
               <div key={mr.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <input className="cc-input" style={{ flex: 1 }} placeholder="Charge type" value={mr.chargeType} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, chargeType: e.target.value } : x) }))} />
                 <input className="cc-input" style={{ flex: 1 }} placeholder="Applies when" value={mr.appliesWhen} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, appliesWhen: e.target.value } : x) }))} />
-                <input className="cc-input" placeholder="Value" style={{ width: 100 }} value={mr.value} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, value: e.target.value } : x) }))} />
-                <span style={{ fontSize: 18, color: "var(--color-muted-foreground)" }}>+</span>
-                <input className="cc-input" placeholder="Additional" style={{ width: 100 }} value={mr.additional} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, additional: e.target.value } : x) }))} />
-                <select className="cc-input" style={{ width: 80 }} value={mr.unit} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, unit: e.target.value as "%" | "₹" } : x) }))}>
-                  <option>%</option><option>₹</option>
-                </select>
-                <button className="cc-icon-btn" onClick={() => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).filter((x) => x.id !== mr.id) }))}>✕</button>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", width: 112 }}>
+                  <span style={{ fontSize: 16, color: "var(--color-muted-foreground)" }}>₹</span>
+                  <input className="cc-input" placeholder="Value" style={{ width: "100%" }} value={mr.value} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, value: e.target.value } : x) }))} />
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", width: 128 }}>
+                  <span style={{ fontSize: 18, color: "var(--color-muted-foreground)" }}>+</span>
+                  <input className="cc-input" placeholder="GST" style={{ width: "100%" }} value={mr.additional} onChange={(e) => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).map((x) => x.id === mr.id ? { ...x, additional: e.target.value } : x) }))} />
+                  <span style={{ fontSize: 16, color: "var(--color-muted-foreground)" }}>%</span>
+                </div>
+                <button className="cc-icon-btn" style={{ width: 32 }} onClick={() => setState((s) => ({ ...s, modificationRules: (s.modificationRules || []).filter((x) => x.id !== mr.id) }))}>✕</button>
               </div>
             ))}
             <button className="cc-btn cc-btn-outline" style={{ alignSelf: "flex-start" }} onClick={() => setState((s) => ({ ...s, modificationRules: [...(s.modificationRules || []), { id: uid(), chargeType: "", appliesWhen: "", value: "", additional: "", unit: "%" }] }))}>+ Add</button>
@@ -315,6 +324,15 @@ export function Step4Policies() {
           Static rates will not be valid — use dynamic pricing from PMS or call hotel directly.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {(state.blackouts || []).length > 0 && (
+            <div style={{ display: "flex", gap: 12, marginBottom: -4, fontSize: 12, color: "var(--color-muted-foreground)", fontWeight: 600 }}>
+              <span style={{ width: 200 }}>Room type</span>
+              <span style={{ flex: 1 }}>From</span>
+              <span style={{ flex: 1 }}>To</span>
+              <span style={{ flex: 1 }}>Reason</span>
+              <span style={{ width: 32 }}></span>
+            </div>
+          )}
           {state.blackouts.map((b) => (
             <div key={b.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <MultiSelectDropdown
@@ -323,22 +341,31 @@ export function Step4Policies() {
                 value={b.roomType || "All rooms"}
                 onChange={(val) => updateBlackout("blackouts", b.id, { roomType: val })}
               />
-              <input type="date" className="cc-input" value={b.from} onChange={(e) => updateBlackout("blackouts", b.id, { from: e.target.value })} />
-              <input type="date" className="cc-input" value={b.to} onChange={(e) => updateBlackout("blackouts", b.id, { to: e.target.value })} />
-              <input className="cc-input" placeholder="Reason" value={b.reason || ""} onChange={(e) => updateBlackout("blackouts", b.id, { reason: e.target.value })} />
-              <button className="cc-icon-btn" onClick={() => removeBlackout("blackouts", b.id)}>✕</button>
+              <input type="date" className="cc-input" style={{ flex: 1 }} value={b.from} onChange={(e) => updateBlackout("blackouts", b.id, { from: e.target.value })} />
+              <input type="date" className="cc-input" style={{ flex: 1 }} value={b.to} onChange={(e) => updateBlackout("blackouts", b.id, { to: e.target.value })} />
+              <input className="cc-input" style={{ flex: 1 }} placeholder="Reason" value={b.reason || ""} onChange={(e) => updateBlackout("blackouts", b.id, { reason: e.target.value })} />
+              <button className="cc-icon-btn" style={{ width: 32 }} onClick={() => removeBlackout("blackouts", b.id)}>✕</button>
             </div>
           ))}
         </div>
         <button className="cc-btn cc-btn-outline" style={{ marginTop: 12 }} onClick={() => addBlackout("blackouts")}>+ Add row</button>
       </Card>
 
-      {/* Stop Sale */}
-      <Card title="Stop sale">
+      {/* Stop Sell */}
+      <Card title="Stop sell">
         <p style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 12 }}>
-          Rooms under stop sale are not available for booking in the specified date range.
+          Rooms under stop sell are not available for booking in the specified date range.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {(state.stopSale || []).length > 0 && (
+            <div style={{ display: "flex", gap: 12, marginBottom: -4, fontSize: 12, color: "var(--color-muted-foreground)", fontWeight: 600 }}>
+              <span style={{ width: 200 }}>Room type</span>
+              <span style={{ flex: 1 }}>From</span>
+              <span style={{ flex: 1 }}>To</span>
+              <span style={{ flex: 1 }}>Reason</span>
+              <span style={{ width: 32 }}></span>
+            </div>
+          )}
           {state.stopSale.map((b) => (
             <div key={b.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <MultiSelectDropdown
@@ -347,10 +374,10 @@ export function Step4Policies() {
                 value={b.roomType || "All rooms"}
                 onChange={(val) => updateBlackout("stopSale", b.id, { roomType: val })}
               />
-              <input type="date" className="cc-input" value={b.from} onChange={(e) => updateBlackout("stopSale", b.id, { from: e.target.value })} />
-              <input type="date" className="cc-input" value={b.to} onChange={(e) => updateBlackout("stopSale", b.id, { to: e.target.value })} />
-              <input className="cc-input" placeholder="Reason" value={b.reason || ""} onChange={(e) => updateBlackout("stopSale", b.id, { reason: e.target.value })} />
-              <button className="cc-icon-btn" onClick={() => removeBlackout("stopSale", b.id)}>✕</button>
+              <input type="date" className="cc-input" style={{ flex: 1 }} value={b.from} onChange={(e) => updateBlackout("stopSale", b.id, { from: e.target.value })} />
+              <input type="date" className="cc-input" style={{ flex: 1 }} value={b.to} onChange={(e) => updateBlackout("stopSale", b.id, { to: e.target.value })} />
+              <input className="cc-input" style={{ flex: 1 }} placeholder="Reason" value={b.reason || ""} onChange={(e) => updateBlackout("stopSale", b.id, { reason: e.target.value })} />
+              <button className="cc-icon-btn" style={{ width: 32 }} onClick={() => removeBlackout("stopSale", b.id)}>✕</button>
             </div>
           ))}
         </div>

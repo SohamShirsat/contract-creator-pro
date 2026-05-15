@@ -2,7 +2,7 @@ import { useContract, type Addon } from "@/lib/contract";
 import { MultiSelectDropdown } from "@/components/ui/MultiSelectDropdown";
 
 export function Step3Addons() {
-  const { state, setState, uid, fillDummy } = useContract();
+  const { state, setState, uid } = useContract();
 
   const update = (id: string, patch: Partial<Addon>) =>
     setState((s) => ({ ...s, addons: s.addons.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
@@ -28,12 +28,8 @@ export function Step3Addons() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <h2 className="cc-page-title">Add-ons</h2>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button className="cc-btn cc-btn-outline" onClick={fillDummy} style={{ height: 36, fontSize: 13 }}>Fill dummy data</button>
-          <button className="cc-btn cc-btn-primary" onClick={add} style={{ height: 36, fontSize: 13 }}>+ Add Add-on</button>
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <button className="cc-btn cc-btn-primary" onClick={add} style={{ height: 36, fontSize: 13 }}>+ Add Add-on</button>
       </div>
 
       {state.addons.map((a) => {

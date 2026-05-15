@@ -175,11 +175,12 @@ export function Step7Preview() {
       <Section title="Policies" step={4} onEdit={setStep}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
           <KV k="No show penalty" v={`${state.noShowPenalty}% of booking value`} />
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
           
           <KV k="Payment policy" v={state.paymentPolicy} />
           {state.paymentPolicy === "Collect in installments" && state.installments.length > 0 && (
             <div>
-              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Installments</div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 24 }}>Installments</div>
               <table className="cc-table cc-table-compact">
                 <thead><tr><th>Amount</th><th>When</th><th>Days</th></tr></thead>
                 <tbody>
@@ -202,6 +203,7 @@ export function Step7Preview() {
               </div>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           <KV k="Modification charges" v={state.modificationCharges} />
           {state.modificationCharges === "Applicable" && (state.modificationRules || []).length > 0 && (
@@ -223,6 +225,7 @@ export function Step7Preview() {
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           <KV k="FOC Policy" v={state.focPolicy} />
           {state.focPolicy === "Applicable" && state.focTiers.length > 0 && (
@@ -242,6 +245,7 @@ export function Step7Preview() {
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           <KV k="Early bird" v={state.earlyBird} />
           {state.earlyBird === "Applicable" && state.earlyBirdRules.length > 0 && (
@@ -261,6 +265,7 @@ export function Step7Preview() {
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           <KV k="Check-in restrictions" v={state.checkInRestrictions} />
           {state.checkInRestrictions === "Applicable" && state.checkInRules.length > 0 && (
@@ -280,6 +285,7 @@ export function Step7Preview() {
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           <div>
             <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Cancellation (before check-in)</div>
@@ -298,6 +304,7 @@ export function Step7Preview() {
               </tbody>
             </table>
           </div>
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
           <div>
             <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Cancellation (after check-in)</div>
             <table className="cc-table cc-table-compact">
@@ -314,8 +321,10 @@ export function Step7Preview() {
               </tbody>
             </table>
           </div>
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
           
           <KV k="Inventory mode" v={state.inventoryMode} />
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
           
           {state.minLOS && state.minLOS.length > 0 && (
             <div>
@@ -335,6 +344,7 @@ export function Step7Preview() {
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           {state.blackouts && state.blackouts.length > 0 && (
             <div>
@@ -345,16 +355,18 @@ export function Step7Preview() {
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
           
           {state.stopSale && state.stopSale.length > 0 && (
             <div>
-              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Stop sale</div>
+              <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Stop sell</div>
               <table className="cc-table cc-table-compact">
                 <thead><tr><th>Room</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
                 <tbody>{state.stopSale.map((b) => <tr key={b.id}><td>{b.roomType}</td><td>{b.from}</td><td>{b.to}</td><td>{b.reason}</td></tr>)}</tbody>
               </table>
             </div>
           )}
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
 
           <div>
             <div style={{ fontSize: 12, color: "var(--color-muted-foreground)", marginBottom: 4 }}>Holding rules</div>
@@ -363,6 +375,7 @@ export function Step7Preview() {
               <tbody>{state.holding.map((h) => <tr key={h.id}><td>{h.policyType}</td><td>{h.value}</td><td>{h.unit}</td><td>{h.trigger}</td></tr>)}</tbody>
             </table>
           </div>
+          <div style={{ height: 1, background: "var(--color-border)", margin: "4px 0" }} />
           {state.policiesAdditionalInfo && <KV k="Additional info" v={state.policiesAdditionalInfo} />}
         </div>
       </Section>
